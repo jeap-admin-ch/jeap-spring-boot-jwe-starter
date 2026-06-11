@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <url>https://github.com/jeap-admin-ch/jeap-spring-boot-config-aws-starter/tree/main</url>
+    <scm>
+        <url>https://github.com/jeap-admin-ch/jeap-spring-boot-config-aws-starter.git</url>
+        <connection>scm:git:git://github.com/jeap-admin-ch/jeap-spring-boot-config-aws-starter.git</connection>
+        <developerConnection>scm:git:ssh://github.com:jeap-admin-ch/jeap-spring-boot-config-aws-starter.git</developerConnection>
+    </scm>
+    <developers>
+        <developer>
+            <name>BIT</name>
+            <email>jeap-community@bit.admin.ch</email>
+            <organization>Federal Office of Information Technology, Systems and Telecommunication FOITT</organization>
+            <organizationUrl>https://www.bit.admin.ch/</organizationUrl>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <packaging>pom</packaging>
+
+    <parent>
+        <artifactId>jeap-internal-spring-boot-parent</artifactId>
+        <groupId>ch.admin.bit.jeap</groupId>
+        <version>7.0.0</version>
+    </parent>
+
+    <artifactId>jeap-spring-boot-jwe-starter-parent</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>jEAP starter for JSON Web Encryption support in Spring Boot Apps</description>
+    <version>0.0.1-SNAPSHOT</version>
+    <modules>
+    </modules>
+
+    <properties>
+        <maven.javadoc.skip>false</maven.javadoc.skip>
+    </properties>
+
+    
+    <dependencyManagement>
+        <dependencies>
+            <!-- TODO(jeap-cli): Verify whether this dependency still needs explicit project-level management and whether version 1.28.0 is appropriate for your project. This dependency was previously managed by Spring Boot or the jeap-parent, which is why it is now in dependency management. -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.28.0</version>
+            </dependency>
+            <!-- TODO(jeap-cli): Verify whether this dependency still needs explicit project-level management and whether version 2.22.0 is appropriate for your project. This dependency was previously managed by Spring Boot or the jeap-parent, which is why it is now in dependency management. -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.22.0</version>
+            </dependency>
+            <!-- TODO(jeap-cli): Verify whether this dependency still needs explicit project-level management and whether version 1.11.0 is appropriate for your project. This dependency was previously managed by Spring Boot or the jeap-parent, which is why it is now in dependency management. -->
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.11.0</version>
+            </dependency>
+            <!-- TODO(jeap-cli): Verify whether this dependency still needs explicit project-level management and whether version 1.9-inv is appropriate for your project. This dependency was previously managed by Spring Boot or the jeap-parent, which is why it is now in dependency management. -->
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>1.9-inv</version>
+            </dependency>
+            <!-- TODO(jeap-cli): Verify whether this dependency still needs explicit project-level management and whether version 1.11.0 is appropriate for your project. This dependency was previously managed by Spring Boot or the jeap-parent, which is why it is now in dependency management. -->
+            <dependency>
+                <groupId>at.yawk.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>1.11.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+<build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <configuration>
+                        <archive>
+                            <manifestEntries>
+                                <Bundle-License>https://www.apache.org/licenses/LICENSE-2.0</Bundle-License>
+                            </manifestEntries>
+                        </archive>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <!-- Check third-party license compliance -->
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+            </plugin>
+            <!-- Generate third-party license list -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
