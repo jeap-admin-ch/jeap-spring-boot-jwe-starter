@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "jeap.jwe.jwks.path",
+      "defaultValue": "/.well-known/jwks.json"
+    }
+  ]
+}

@@ -14,11 +14,22 @@ softwareType: library
 description:
   en:
     localisedName: jeap-spring-boot-jwe-starter
-    shortDescription: TODO (Max. 150 characters)
+    shortDescription: A Spring Boot starter for transparent JWE-based end-to-end encryption in jEAP services.
     longDescription: >
-      TODO (Min. 150 characters)
+      The jeap-spring-boot-jwe-starter provides transparent JWE-based end-to-end encryption support for jEAP Spring Boot
+      services. It automatically exposes the backend public keys as a JWKS endpoint, manages Vault-backed RSA key 
+      material including refresh and rotation support, and decrypts incoming application/jose requests before they 
+      reach Spring MVC controllers. For protected endpoints, the starter also encrypts JSON responses as JWE, supports
+      configurable exclusions such as actuator and JWKS endpoints, and provides structured error responses for invalid
+      or missing encryption protocol data. It is designed to use established JOSE libraries and standard algorithms 
+      such as RSA-OAEP-256 and A256GCM, without requiring application controllers to implement encryption logic 
+      themselves.
     features:
-      - TODO
+      - Encryption of HTTP requests and responses using JSON Web Encryption (JWE) for end-to-end security.
+      - Automatic exposure of backend public keys via a JWKS endpoint for client encryption.
+      - Integration with Vault for secure RSA key management, including support for key refresh and rotation.
+      - Transparent decryption of incoming application/jose requests before they reach Spring MVC controllers.
+      - Configurable exclusions for encryption, such as actuator and JWKS endpoints.
 legal:
   license: Apache-2.0
 maintenance:

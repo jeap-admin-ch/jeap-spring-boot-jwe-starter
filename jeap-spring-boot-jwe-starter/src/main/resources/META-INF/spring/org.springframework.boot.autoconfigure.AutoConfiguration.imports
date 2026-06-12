@@ -1,0 +1,4 @@
+ch.admin.bit.jeap.jwe.starter.JweAutoConfiguration
+ch.admin.bit.jeap.jwe.starter.JweVaultAutoConfiguration
+ch.admin.bit.jeap.jwe.starter.JweRefreshAutoConfiguration
+ch.admin.bit.jeap.jwe.starter.JweWebAutoConfiguration

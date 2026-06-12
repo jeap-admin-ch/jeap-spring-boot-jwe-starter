@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ch.admin.bit.jeap</groupId>
+        <artifactId>jeap-spring-boot-jwe-starter-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>jeap-spring-boot-jwe-web</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Web layer for the jEAP JWE starter: the JWKS endpoint and the servlet filter for transparent JWE
+        request decryption and response encryption. Servlet stack only (no reactive/WebFlux support).
+    </description>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>ch.admin.bit.jeap</groupId>
+            <artifactId>jeap-spring-boot-jwe-key-management</artifactId>
+        </dependency>
+
+        <!-- Servlet web stack only. Provided: the consuming application supplies Spring MVC (e.g. via
+             spring-boot-starter-web); reactive/WebFlux is not supported. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

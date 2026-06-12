@@ -1,0 +1,63 @@
+package ch.admin.bit.jeap.jwe.keymanagement;
+
+import ch.admin.bit.jeap.jwe.crypto.JweRsaKeys;
+import ch.admin.bit.jeap.jwe.test.JweTestKeys;
+import com.nimbusds.jose.jwk.RSAKey;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class InMemoryJweKeyStoreTest {
+
+    private static final String KEY_NAME = "payment-key";
+
+    private final RSAKey v1 = JweRsaKeys.from(JweTestKeys.rsa4096(0), JweRsaKeys.keyId(KEY_NAME, 1));
+    private final RSAKey v2 = JweRsaKeys.from(JweTestKeys.rsa4096(1), JweRsaKeys.keyId(KEY_NAME, 2));
+    private final RSAKey v3 = JweRsaKeys.from(JweTestKeys.rsa4096(2), JweRsaKeys.keyId(KEY_NAME, 3));
+
+    @Test
+    void emptyByDefault() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+
+        assertThat(store.activeKeys()).isEmpty();
+        assertThat(store.currentEncryptionKey()).isEmpty();
+        assertThat(store.findByKeyId("payment-key:1")).isEmpty();
+    }
+
+    @Test
+    void replaceKeys_ordersNewestVersionFirstRegardlessOfInputOrder() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+
+        store.replaceKeys(List.of(v1, v3, v2));
+
+        assertThat(store.activeKeys()).containsExactly(v3, v2, v1);
+        assertThat(store.currentEncryptionKey()).contains(v3);
+    }
+
+    @Test
+    void findByKeyId_hitAndMiss() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+        store.replaceKeys(List.of(v1, v2));
+
+        assertThat(store.findByKeyId("payment-key:2")).contains(v2);
+        assertThat(store.findByKeyId("payment-key:1")).contains(v1);
+        assertThat(store.findByKeyId("payment-key:99")).isEmpty();
+    }
+
+    @Test
+    void replaceKeys_swapsSnapshotAtomically() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+        store.replaceKeys(List.of(v1));
+        List<RSAKey> beforeSwap = store.activeKeys();
+
+        store.replaceKeys(List.of(v2, v3));
+
+        // The previously returned snapshot is unaffected by the swap (immutable view).
+        assertThat(beforeSwap).containsExactly(v1);
+        assertThat(store.activeKeys()).containsExactly(v3, v2);
+        assertThat(store.currentEncryptionKey()).contains(v3);
+        assertThat(store.findByKeyId("payment-key:1")).isEmpty();
+    }
+}
