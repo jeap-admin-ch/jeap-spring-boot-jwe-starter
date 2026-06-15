@@ -8,6 +8,8 @@ Third-party dependencies grouped by their license type (see [pom.xml](/pom.xml) 
 Apache License Version 2.0
 -------------------------------
 
+ * ch.admin.bit.jeap:jeap-spring-boot-jwe-crypto - [ch.admin.bit.jeap:jeap-spring-boot-jwe-crypto](https://github.com/jeap-admin-ch/jeap-spring-boot-config-aws-starter/tree/main/jeap-spring-boot-jwe-crypto)
+ * ch.admin.bit.jeap:jeap-spring-boot-jwe-key-management - [ch.admin.bit.jeap:jeap-spring-boot-jwe-key-management](https://github.com/jeap-admin-ch/jeap-spring-boot-config-aws-starter/tree/main/jeap-spring-boot-jwe-key-management)
  * ch.admin.bit.jeap:jeap-spring-boot-jwe-test - [ch.admin.bit.jeap:jeap-spring-boot-jwe-test](https://github.com/jeap-admin-ch/jeap-spring-boot-config-aws-starter/tree/main/jeap-spring-boot-jwe-test)
  * ch.admin.bit.jeap:jeap-spring-boot-jwe-web - [ch.admin.bit.jeap:jeap-spring-boot-jwe-web](https://github.com/jeap-admin-ch/jeap-spring-boot-config-aws-starter/tree/main/jeap-spring-boot-jwe-web)
  * Jackson-annotations - [com.fasterxml.jackson.core:jackson-annotations](https://github.com/FasterXML/jackson)
@@ -17,8 +19,8 @@ Apache License Version 2.0
  * json-path - [com.jayway.jsonpath:json-path](https://github.com/jayway/JsonPath)
  * Nimbus JOSE+JWT - [com.nimbusds:nimbus-jose-jwt](https://bitbucket.org/connect2id/nimbus-jose-jwt)
  * JSON library from Android SDK - [com.vaadin.external.google:android-json](http://developer.android.com/sdk)
-* Apache Commons Codec - [commons-codec:commons-codec](https://commons.apache.org/proper/commons-codec/)
-* Apache Commons IO - [commons-io:commons-io](https://commons.apache.org/proper/commons-io/)
+ * Apache Commons Codec - [commons-codec:commons-codec](https://commons.apache.org/proper/commons-codec/)
+ * Apache Commons IO - [commons-io:commons-io](https://commons.apache.org/proper/commons-io/)
  * Apache Commons Logging - [commons-logging:commons-logging](https://commons.apache.org/proper/commons-logging/)
  * micrometer-commons - [io.micrometer:micrometer-commons](https://github.com/micrometer-metrics/micrometer)
  * micrometer-observation - [io.micrometer:micrometer-observation](https://github.com/micrometer-metrics/micrometer)
@@ -28,7 +30,7 @@ Apache License Version 2.0
  * ASM based accessors helper used by json-smart - [net.minidev:accessors-smart](https://urielch.github.io/)
  * JSON Small and Fast Parser - [net.minidev:json-smart](https://urielch.github.io/)
  * Apache Commons Compress - [org.apache.commons:commons-compress](https://commons.apache.org/proper/commons-compress/)
-* Apache Commons Lang - [org.apache.commons:commons-lang3](https://commons.apache.org/proper/commons-lang/)
+ * Apache Commons Lang - [org.apache.commons:commons-lang3](https://commons.apache.org/proper/commons-lang/)
  * Apache HttpClient - [org.apache.httpcomponents.client5:httpclient5](https://hc.apache.org/httpcomponents-client-5.5.x/5.5.2/httpclient5/)
  * Apache HttpComponents Core HTTP/1.1 - [org.apache.httpcomponents.core5:httpcore5](https://hc.apache.org/httpcomponents-core-5.3.x/5.3.6/httpcore5/)
  * Apache HttpComponents Core HTTP/2 - [org.apache.httpcomponents.core5:httpcore5-h2](https://hc.apache.org/httpcomponents-core-5.3.x/5.3.6/httpcore5-h2/)
@@ -78,12 +80,10 @@ Apache License Version 2.0
  * spring-cloud-starter - [org.springframework.cloud:spring-cloud-starter](https://projects.spring.io/spring-cloud)
  * Spring Cloud Starter Vault Config - [org.springframework.cloud:spring-cloud-starter-vault-config](https://cloud.spring.io/spring-cloud-vault/)
  * Spring Cloud Vault Configuration Integration - [org.springframework.cloud:spring-cloud-vault-config](https://github.com/spring-cloud/spring-cloud-vault/spring-cloud-vault-config)
-* spring-security-core - [org.springframework.security:spring-security-core](https://spring.io/projects/spring-security)
+ * spring-security-core - [org.springframework.security:spring-security-core](https://spring.io/projects/spring-security)
  * spring-security-crypto - [org.springframework.security:spring-security-crypto](https://spring.io/projects/spring-security)
-*
-spring-security-oauth2-core - [org.springframework.security:spring-security-oauth2-core](https://spring.io/projects/spring-security)
-*
-spring-security-oauth2-jose - [org.springframework.security:spring-security-oauth2-jose](https://spring.io/projects/spring-security)
+ * spring-security-oauth2-core - [org.springframework.security:spring-security-oauth2-core](https://spring.io/projects/spring-security)
+ * spring-security-oauth2-jose - [org.springframework.security:spring-security-oauth2-jose](https://spring.io/projects/spring-security)
  * Spring Vault Core - [org.springframework.vault:spring-vault-core](https://projects.spring.io/spring-vault/spring-vault-core/)
  * org.xmlunit:xmlunit-core - [org.xmlunit:xmlunit-core](https://www.xmlunit.org/)
  * SnakeYAML - [org.yaml:snakeyaml](https://bitbucket.org/snakeyaml/snakeyaml)
@@ -106,8 +106,8 @@ Bouncy Castle Licence
 EPL-2.0
 -------------------------------
 
-* Logback Classic Module - [ch.qos.logback:logback-classic](http://logback.qos.ch/logback-classic)
-* Logback Core Module - [ch.qos.logback:logback-core](http://logback.qos.ch/logback-core)
+ * Logback Classic Module - [ch.qos.logback:logback-classic](http://logback.qos.ch/logback-classic)
+ * Logback Core Module - [ch.qos.logback:logback-core](http://logback.qos.ch/logback-core)
 
 Eclipse Distribution License - v 1.0
 -------------------------------
@@ -152,6 +152,5 @@ MIT License
  * JUL to SLF4J bridge - [org.slf4j:jul-to-slf4j](http://www.slf4j.org)
  * SLF4J API Module - [org.slf4j:slf4j-api](http://www.slf4j.org)
  * Testcontainers Core - [org.testcontainers:testcontainers](https://java.testcontainers.org)
-* Testcontainers :: JUnit Jupiter
-  Extension - [org.testcontainers:testcontainers-junit-jupiter](https://java.testcontainers.org)
-* Testcontainers :: Vault - [org.testcontainers:testcontainers-vault](https://java.testcontainers.org)
+ * Testcontainers :: JUnit Jupiter Extension - [org.testcontainers:testcontainers-junit-jupiter](https://java.testcontainers.org)
+ * Testcontainers :: Vault - [org.testcontainers:testcontainers-vault](https://java.testcontainers.org)
