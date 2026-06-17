@@ -69,7 +69,7 @@ Apache License Version 2.0
  * spring-boot-starter-test - [org.springframework.boot:spring-boot-starter-test](https://spring.io/projects/spring-boot)
  * spring-boot-starter-tomcat - [org.springframework.boot:spring-boot-starter-tomcat](https://spring.io/projects/spring-boot)
  * spring-boot-starter-tomcat-runtime - [org.springframework.boot:spring-boot-starter-tomcat-runtime](https://spring.io/projects/spring-boot)
- * spring-boot-starter-web - [org.springframework.boot:spring-boot-starter-web](https://spring.io/projects/spring-boot)
+ * spring-boot-starter-webmvc - [org.springframework.boot:spring-boot-starter-webmvc](https://spring.io/projects/spring-boot)
  * spring-boot-test - [org.springframework.boot:spring-boot-test](https://spring.io/projects/spring-boot)
  * spring-boot-test-autoconfigure - [org.springframework.boot:spring-boot-test-autoconfigure](https://spring.io/projects/spring-boot)
  * spring-boot-tomcat - [org.springframework.boot:spring-boot-tomcat](https://spring.io/projects/spring-boot)
