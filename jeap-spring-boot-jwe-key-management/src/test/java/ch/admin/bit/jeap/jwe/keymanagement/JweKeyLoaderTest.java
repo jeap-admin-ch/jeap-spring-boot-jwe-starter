@@ -15,7 +15,7 @@ class JweKeyLoaderTest {
     private final RSAKey key = JweRsaKeys.from(JweTestKeys.rsa4096(0), JweRsaKeys.keyId("k", 1));
 
     @Test
-    void loadOrThrow_populatesStoreFromSource() {
+    void loadOrThrowPopulatesStoreFromSource() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         JweKeyLoader loader = new JweKeyLoader(store, () -> List.of(key));
 
@@ -25,7 +25,7 @@ class JweKeyLoaderTest {
     }
 
     @Test
-    void loadOrThrow_failsFastWhenSourceYieldsNoKeys() {
+    void loadOrThrowFailsFastWhenSourceYieldsNoKeys() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         JweKeyLoader loader = new JweKeyLoader(store, List::of);
 
@@ -36,7 +36,7 @@ class JweKeyLoaderTest {
     }
 
     @Test
-    void refresh_swapsCacheWithNewlyLoadedKeys() {
+    void refreshSwapsCacheWithNewlyLoadedKeys() {
         RSAKey v2 = JweRsaKeys.from(JweTestKeys.rsa4096(1), JweRsaKeys.keyId("k", 2));
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(key));
@@ -48,7 +48,7 @@ class JweKeyLoaderTest {
     }
 
     @Test
-    void refresh_throwsAndKeepsCacheWhenSourceReturnsNoKeys() {
+    void refreshThrowsAndKeepsCacheWhenSourceReturnsNoKeys() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(key));
         JweKeyLoader loader = new JweKeyLoader(store, List::of);
@@ -60,7 +60,7 @@ class JweKeyLoaderTest {
     }
 
     @Test
-    void loadOrThrow_wrapsSourceFailureWithActionableMessage() {
+    void loadOrThrowWrapsSourceFailureWithActionableMessage() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         JweKeyLoader loader = new JweKeyLoader(store, () -> {
             throw new IllegalStateException("vault down");

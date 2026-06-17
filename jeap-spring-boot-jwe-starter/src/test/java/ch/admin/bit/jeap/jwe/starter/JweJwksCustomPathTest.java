@@ -36,7 +36,7 @@ class JweJwksCustomPathTest {
     private int port;
 
     @Test
-    void customPath_servesJwkSet() throws Exception {
+    void customPathServesJwkSet() throws Exception {
         ResponseEntity<String> response = client()
                 .get().uri(CUSTOM_PATH)
                 .retrieve().toEntity(String.class);
@@ -46,7 +46,7 @@ class JweJwksCustomPathTest {
     }
 
     @Test
-    void defaultPath_notServedWhenOverridden() {
+    void defaultPathNotServedWhenOverridden() {
         HttpStatusCode status = client()
                 .get().uri("/.well-known/jwks.json")
                 .exchange((_, response) -> response.getStatusCode());

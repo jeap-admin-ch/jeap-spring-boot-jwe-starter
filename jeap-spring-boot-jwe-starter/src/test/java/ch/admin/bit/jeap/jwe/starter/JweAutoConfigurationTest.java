@@ -11,13 +11,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class JweAutoConfigurationTest {
 
+    public static final String JEAP_JWE_TEST_KEYS_0 = "jeap.jwe.test.keys[0]=";
     private static final String TEST_KEY_PEM = JweTestKeys.rsa4096Pem(0);
+    public static final String JEAP_JWE_TEST_ENABLED_TRUE = "jeap.jwe.test.enabled=true";
+    public static final String JEAP_JWE_ENABLED_TRUE = "jeap.jwe.enabled=true";
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(JweAutoConfiguration.class));
 
     @Test
-    void enabledByDefault_activatesWhenOnClasspath() {
+    void enabledByDefaultActivatesWhenOnClasspath() {
         // Without any jeap.jwe.enabled property, the starter activates (and requires config).
         runner.run(context -> {
             assertThat(context).hasFailed();
@@ -27,7 +30,7 @@ class JweAutoConfigurationTest {
     }
 
     @Test
-    void explicitlyDisabled_noJweBeans() {
+    void explicitlyDisabledNoJweBeans() {
         runner.withPropertyValues("jeap.jwe.enabled=false")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -36,11 +39,11 @@ class JweAutoConfigurationTest {
     }
 
     @Test
-    void enabledInTestMode_bindsDefaults() {
+    void enabledInTestModeBindsDefaults() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.test.enabled=true",
-                        "jeap.jwe.test.keys[0]=" + TEST_KEY_PEM)
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
+                        JEAP_JWE_TEST_KEYS_0 + TEST_KEY_PEM)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(JweProperties.class);
@@ -53,22 +56,22 @@ class JweAutoConfigurationTest {
     }
 
     @Test
-    void customJwksPath_isBound() {
+    void customJwksPathIsBound() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.test.enabled=true",
-                        "jeap.jwe.test.keys[0]=" + TEST_KEY_PEM,
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
+                        JEAP_JWE_TEST_KEYS_0 + TEST_KEY_PEM,
                         "jeap.jwe.jwks.path=/custom/jwks.json")
                 .run(context -> assertThat(context.getBean(JweProperties.class).getJwks().getPath())
                         .isEqualTo("/custom/jwks.json"));
     }
 
     @Test
-    void vaultMode_withoutKeySource_failsFastAtStartup() {
+    void vaultModeWithoutKeySourceFailsFastAtStartup() {
         // Vault mode but no VaultOperations / key source available (Spring Cloud Vault not wired):
         // the starter must fail fast rather than start with no usable keys.
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
+                        JEAP_JWE_ENABLED_TRUE,
                         "jeap.jwe.vault.transit-key-name=my-jwe-key",
                         "jeap.vault.system-name=my-system")
                 .run(context -> {
@@ -79,8 +82,8 @@ class JweAutoConfigurationTest {
     }
 
     @Test
-    void vaultMode_failsWithoutTransitKeyName() {
-        runner.withPropertyValues("jeap.jwe.enabled=true")
+    void vaultModeFailsWithoutTransitKeyName() {
+        runner.withPropertyValues(JEAP_JWE_ENABLED_TRUE)
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context).getFailure()
@@ -89,9 +92,9 @@ class JweAutoConfigurationTest {
     }
 
     @Test
-    void vaultDisabled_treatedAsRequiringStaticKeys() {
+    void vaultDisabledTreatedAsRequiringStaticKeys() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
+                        JEAP_JWE_ENABLED_TRUE,
                         "spring.cloud.vault.enabled=false")
                 .run(context -> {
                     // Not Vault mode (vault disabled) and test keys missing -> fails fast.
@@ -102,11 +105,11 @@ class JweAutoConfigurationTest {
     }
 
     @Test
-    void nonPositiveRefreshInterval_failsFast() {
+    void nonPositiveRefreshIntervalFailsFast() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.test.enabled=true",
-                        "jeap.jwe.test.keys[0]=" + TEST_KEY_PEM,
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
+                        JEAP_JWE_TEST_KEYS_0 + TEST_KEY_PEM,
                         "jeap.jwe.refresh.interval=0s")
                 .run(context -> {
                     assertThat(context).hasFailed();
@@ -116,11 +119,11 @@ class JweAutoConfigurationTest {
     }
 
     @Test
-    void invalidRefreshMaxAttempts_failsFast() {
+    void invalidRefreshMaxAttemptsFailsFast() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.test.enabled=true",
-                        "jeap.jwe.test.keys[0]=" + TEST_KEY_PEM,
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
+                        JEAP_JWE_TEST_KEYS_0 + TEST_KEY_PEM,
                         "jeap.jwe.refresh.max-attempts=0")
                 .run(context -> {
                     assertThat(context).hasFailed();

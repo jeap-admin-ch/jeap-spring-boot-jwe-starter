@@ -22,16 +22,18 @@ class JweVaultAutoConfigurationTest {
 
     private static final String ENGINE = "transit";
     private static final String KEY_NAME = "my-jwe-key";
+    public static final String JEAP_JWE_VAULT_TRANSIT_KEY_NAME = "jeap.jwe.vault.transit-key-name=";
+    public static final String JEAP_JWE_ENABLED_TRUE = "jeap.jwe.enabled=true";
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(JweAutoConfiguration.class, JweVaultAutoConfiguration.class));
 
     @Test
-    void vaultMode_withVaultOperations_contributesVaultSourceAndPopulatesStore() {
+    void vaultMode_withVaultOperationsContributesVaultSourceAndPopulatesStore() {
         runner.withBean(VaultOperations.class, () -> StubVaultTransit.withSingleVersion(ENGINE, KEY_NAME))
                 .withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.vault.transit-key-name=" + KEY_NAME,
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_VAULT_TRANSIT_KEY_NAME + KEY_NAME,
                         "jeap.jwe.vault.secret-engine-path=" + ENGINE)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -43,13 +45,13 @@ class JweVaultAutoConfigurationTest {
     }
 
     @Test
-    void vaultMode_derivesSecretEnginePathFromSystemName() {
+    void vaultModeDerivesSecretEnginePathFromSystemName() {
         // No explicit secret-engine-path: it is derived as transit/<system-name>; the stub answers only
         // on that derived path, so a successful load proves the derivation was applied.
         runner.withBean(VaultOperations.class, () -> StubVaultTransit.withSingleVersion("transit/my-system", KEY_NAME))
                 .withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.vault.transit-key-name=" + KEY_NAME,
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_VAULT_TRANSIT_KEY_NAME + KEY_NAME,
                         "jeap.vault.system-name=my-system")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -61,10 +63,10 @@ class JweVaultAutoConfigurationTest {
     }
 
     @Test
-    void testMode_doesNotContributeVaultSource() {
+    void testModeDoesNotContributeVaultSource() {
         runner.withBean(VaultOperations.class, () -> StubVaultTransit.withSingleVersion(ENGINE, KEY_NAME))
                 .withPropertyValues(
-                        "jeap.jwe.enabled=true",
+                        JEAP_JWE_ENABLED_TRUE,
                         "jeap.jwe.test.enabled=true",
                         "jeap.jwe.test.keys[0]=" + JweTestKeys.rsa4096Pem(0))
                 .run(context -> {
@@ -74,11 +76,11 @@ class JweVaultAutoConfigurationTest {
     }
 
     @Test
-    void vaultMode_withoutVaultOperationsBean_failsFast() {
+    void vaultModeWithoutVaultOperationsBeanFailsFast() {
         // No VaultOperations bean -> no Vault key source -> the startup load fails fast.
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.vault.transit-key-name=" + KEY_NAME,
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_VAULT_TRANSIT_KEY_NAME + KEY_NAME,
                         "jeap.jwe.vault.secret-engine-path=" + ENGINE)
                 .run(context -> {
                     assertThat(context).hasFailed();

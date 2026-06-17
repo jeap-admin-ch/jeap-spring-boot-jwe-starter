@@ -27,18 +27,19 @@ class VaultJweKeySourceTest {
     private final VaultJweKeySource source = new VaultJweKeySource(vaultOperations, ENGINE, KEY, 1);
 
     @Test
-    void loadActiveKeys_throwsWhenKeyMetadataIsMissing() {
-        when(vaultOperations.read(ENGINE + "/keys/" + KEY)).thenReturn(null);
+    void loadActiveKeysThrowsWhenKeyMetadataIsMissing() {
+        when(vaultOperations.read(metadataPath())).thenReturn(null);
 
         assertThatThrownBy(source::loadActiveKeys)
                 .isInstanceOf(JweKeyValidationException.class)
                 .hasMessageContaining("No Vault response")
-                .hasMessageContaining(ENGINE + "/keys/" + KEY);
+                .hasMessageContaining(metadataPath());
     }
 
     @Test
-    void loadActiveKeys_throwsWhenLatestVersionFieldIsMissing() {
-        when(vaultOperations.read(ENGINE + "/keys/" + KEY)).thenReturn(response(Map.of("min_decryption_version", 1)));
+    void loadActiveKeysThrowsWhenLatestVersionFieldIsMissing() {
+        when(vaultOperations.read(metadataPath()))
+                .thenReturn(response(Map.of("min_decryption_version", 1)));
 
         assertThatThrownBy(source::loadActiveKeys)
                 .isInstanceOf(JweKeyValidationException.class)
@@ -46,9 +47,10 @@ class VaultJweKeySourceTest {
     }
 
     @Test
-    void loadActiveKeys_throwsWhenExportHasNoKeysMap() {
-        stubMetadata(1, 1);
-        when(vaultOperations.read(exportPath(1))).thenReturn(response(Map.of("name", KEY)));
+    void loadActiveKeysThrowsWhenExportHasNoKeysMap() {
+        stubMetadata(1);
+        when(vaultOperations.read(exportPath()))
+                .thenReturn(response(Map.of("name", KEY)));
 
         assertThatThrownBy(source::loadActiveKeys)
                 .isInstanceOf(JweKeyValidationException.class)
@@ -56,9 +58,10 @@ class VaultJweKeySourceTest {
     }
 
     @Test
-    void loadActiveKeys_throwsWhenExportedKeyIsNotAPemString() {
-        stubMetadata(1, 1);
-        when(vaultOperations.read(exportPath(1))).thenReturn(response(Map.of("keys", Map.of("1", 42))));
+    void loadActiveKeysThrowsWhenExportedKeyIsNotAPemString() {
+        stubMetadata(1);
+        when(vaultOperations.read(exportPath()))
+                .thenReturn(response(Map.of("keys", Map.of("1", 42))));
 
         assertThatThrownBy(source::loadActiveKeys)
                 .isInstanceOf(JweKeyValidationException.class)
@@ -66,10 +69,10 @@ class VaultJweKeySourceTest {
     }
 
     @Test
-    void loadActiveKeys_throwsWhenActiveWindowIsEmpty() {
+    void loadActiveKeysThrowsWhenActiveWindowIsEmpty() {
         // min-version (5) above latest_version (2) -> empty window.
         VaultJweKeySource highMinVersion = new VaultJweKeySource(vaultOperations, ENGINE, KEY, 5);
-        stubMetadata(1, 2);
+        stubMetadata(2);
 
         assertThatThrownBy(highMinVersion::loadActiveKeys)
                 .isInstanceOf(JweKeyValidationException.class)
@@ -77,9 +80,9 @@ class VaultJweKeySourceTest {
     }
 
     @Test
-    void loadActiveKeys_parsesExportedPemIntoValidatedVersionedKey() {
-        stubMetadata(1, 1);
-        when(vaultOperations.read(exportPath(1)))
+    void loadActiveKeysParsesExportedPemIntoValidatedVersionedKey() {
+        stubMetadata(1);
+        when(vaultOperations.read(exportPath()))
                 .thenReturn(response(Map.of("keys", Map.of("1", JweTestKeys.rsa4096Pem(0)))));
 
         assertThat(source.loadActiveKeys())
@@ -90,13 +93,20 @@ class VaultJweKeySourceTest {
                 });
     }
 
-    private void stubMetadata(int minDecryptionVersion, int latestVersion) {
-        when(vaultOperations.read(ENGINE + "/keys/" + KEY)).thenReturn(response(
-                Map.of("latest_version", latestVersion, "min_decryption_version", minDecryptionVersion)));
+    private void stubMetadata(int latestVersion) {
+        when(vaultOperations.read(metadataPath()))
+                .thenReturn(response(
+                        Map.of(
+                                "latest_version", latestVersion,
+                                "min_decryption_version", 1)));
     }
 
-    private String exportPath(int version) {
-        return ENGINE + "/export/encryption-key/" + KEY + "/" + version;
+    private static String metadataPath() {
+        return VaultJweKeySourceTest.ENGINE + "/keys/" + VaultJweKeySourceTest.KEY;
+    }
+
+    private static String exportPath() {
+        return VaultJweKeySourceTest.ENGINE + "/export/encryption-key/" + VaultJweKeySourceTest.KEY + "/" + 1;
     }
 
     private static VaultResponse response(Map<String, Object> data) {

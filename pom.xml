@@ -37,7 +37,7 @@
     <artifactId>jeap-spring-boot-jwe-starter-parent</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>jEAP starter for JSON Web Encryption support in Spring Boot Apps</description>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <modules>
         <module>jeap-spring-boot-jwe-crypto</module>
         <module>jeap-spring-boot-jwe-key-management</module>

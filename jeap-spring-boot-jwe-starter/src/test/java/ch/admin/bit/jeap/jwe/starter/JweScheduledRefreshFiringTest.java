@@ -28,7 +28,7 @@ class JweScheduledRefreshFiringTest {
     private final RSAKey v2 = JweRsaKeys.from(JweTestKeys.rsa4096(1), JweRsaKeys.keyId("k", 2));
 
     @Test
-    void scheduledRefresh_picksUpNewVersionWithoutRestart() {
+    void scheduledRefreshPicksUpNewVersionWithoutRestart() {
         AtomicReference<List<RSAKey>> activeKeys = new AtomicReference<>(List.of(v1));
         JweKeySource changingSource = activeKeys::get;
 

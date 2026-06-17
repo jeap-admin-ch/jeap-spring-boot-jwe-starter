@@ -37,7 +37,7 @@ class JweJwksEndpointTest {
     private int port;
 
     @Test
-    void getDefaultPath_returnsPublicJwkSetNewestKeyFirst() throws Exception {
+    void getDefaultPathReturnsPublicJwkSetNewestKeyFirst() throws Exception {
         ResponseEntity<String> response = RestClient.create("http://localhost:" + port)
                 .get().uri("/.well-known/jwks.json")
                 .retrieve().toEntity(String.class);

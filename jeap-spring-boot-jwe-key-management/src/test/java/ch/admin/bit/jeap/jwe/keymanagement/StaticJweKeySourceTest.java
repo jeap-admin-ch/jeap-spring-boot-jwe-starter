@@ -12,10 +12,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class StaticJweKeySourceTest {
 
+    public static final String TEST_KEY = "test-key";
+
     @Test
-    void loadActiveKeys_assignsStableVersionedKidsInConfigOrder() {
+    void loadActiveKeysAssignsStableVersionedKidsInConfigOrder() {
         StaticJweKeySource source = new StaticJweKeySource(
-                "test-key", List.of(JweTestKeys.rsa4096Pem(0), JweTestKeys.rsa4096Pem(1)));
+                TEST_KEY, List.of(JweTestKeys.rsa4096Pem(0), JweTestKeys.rsa4096Pem(1)));
 
         List<RSAKey> keys = source.loadActiveKeys();
 
@@ -27,9 +29,9 @@ class StaticJweKeySourceTest {
     }
 
     @Test
-    void loadActiveKeys_rejectsUndersizedKey() {
+    void loadActiveKeysRejectsUndersizedKey() {
         String pem2048 = JweTestKeys.pem(JweTestKeys.generate(2048));
-        StaticJweKeySource source = new StaticJweKeySource("test-key", List.of(pem2048));
+        StaticJweKeySource source = new StaticJweKeySource(TEST_KEY, List.of(pem2048));
 
         assertThatThrownBy(source::loadActiveKeys)
                 .isInstanceOf(JweKeyValidationException.class)
@@ -37,8 +39,8 @@ class StaticJweKeySourceTest {
     }
 
     @Test
-    void loadActiveKeys_failsWhenNoKeysConfigured() {
-        StaticJweKeySource source = new StaticJweKeySource("test-key", List.of());
+    void loadActiveKeysFailsWhenNoKeysConfigured() {
+        StaticJweKeySource source = new StaticJweKeySource(TEST_KEY, List.of());
 
         assertThatThrownBy(source::loadActiveKeys)
                 .isInstanceOf(JweKeyValidationException.class)

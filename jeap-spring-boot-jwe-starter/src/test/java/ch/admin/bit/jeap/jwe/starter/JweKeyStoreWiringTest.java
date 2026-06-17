@@ -15,14 +15,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class JweKeyStoreWiringTest {
 
+    public static final String JEAP_JWE_TEST_ENABLED_TRUE = "jeap.jwe.test.enabled=true";
+    public static final String JEAP_JWE_ENABLED_TRUE = "jeap.jwe.enabled=true";
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(JweAutoConfiguration.class));
 
     @Test
-    void staticMode_populatesKeyStoreNewestVersionFirst() {
+    void staticModePopulatesKeyStoreNewestVersionFirst() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.test.enabled=true",
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
                         "jeap.jwe.vault.transit-key-name=my-jwe-key",
                         "jeap.jwe.test.keys[0]=" + JweTestKeys.rsa4096Pem(0),
                         "jeap.jwe.test.keys[1]=" + JweTestKeys.rsa4096Pem(1))
@@ -41,10 +43,10 @@ class JweKeyStoreWiringTest {
     }
 
     @Test
-    void staticMode_withoutTransitKeyName_usesDefaultKidName() {
+    void staticModeWithoutTransitKeyNameUsesDefaultKidName() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.test.enabled=true",
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
                         "jeap.jwe.test.keys[0]=" + JweTestKeys.rsa4096Pem(0))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -56,10 +58,10 @@ class JweKeyStoreWiringTest {
     }
 
     @Test
-    void staticMode_invalidKeyFailsContextFast() {
+    void staticModeInvalidKeyFailsContextFast() {
         runner.withPropertyValues(
-                        "jeap.jwe.enabled=true",
-                        "jeap.jwe.test.enabled=true",
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
                         "jeap.jwe.test.keys[0]=not-a-pem-key")
                 .run(context -> assertThat(context).hasFailed());
     }

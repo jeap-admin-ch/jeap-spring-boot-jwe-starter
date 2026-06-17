@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class JwePropertiesTest {
 
     @Test
-    void toString_doesNotLeakStaticPrivateKeyMaterial() {
+    void toStringDoesNotLeakStaticPrivateKeyMaterial() {
         JweProperties properties = new JweProperties();
         properties.getTest().setEnabled(true);
         properties.getTest().getKeys().add(JweTestKeys.rsa4096Pem(0));
@@ -23,7 +23,7 @@ class JwePropertiesTest {
     }
 
     @Test
-    void toString_rendersEmptyKeyListPlainly() {
+    void toStringRendersEmptyKeyListPlainly() {
         assertThat(new JweProperties().toString()).contains("keys=[]");
     }
 }

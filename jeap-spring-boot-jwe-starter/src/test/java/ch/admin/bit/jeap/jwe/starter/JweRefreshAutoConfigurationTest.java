@@ -24,7 +24,7 @@ class JweRefreshAutoConfigurationTest {
                     JweAutoConfiguration.class, JweVaultAutoConfiguration.class, JweRefreshAutoConfiguration.class));
 
     @Test
-    void vaultMode_registersRefreshScheduler() {
+    void vaultModeRegistersRefreshScheduler() {
         runner.withBean(VaultOperations.class, () -> StubVaultTransit.withSingleVersion(ENGINE, KEY_NAME))
                 .withPropertyValues(
                         "jeap.jwe.enabled=true",
@@ -38,7 +38,7 @@ class JweRefreshAutoConfigurationTest {
     }
 
     @Test
-    void staticTestMode_doesNotRegisterRefresh() {
+    void staticTestModeDoesNotRegisterRefresh() {
         runner.withPropertyValues(
                         "jeap.jwe.enabled=true",
                         "jeap.jwe.test.enabled=true",

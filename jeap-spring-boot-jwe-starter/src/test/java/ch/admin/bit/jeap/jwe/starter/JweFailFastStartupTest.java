@@ -20,7 +20,7 @@ class JweFailFastStartupTest {
             .withConfiguration(AutoConfigurations.of(JweAutoConfiguration.class, JweVaultAutoConfiguration.class));
 
     @Test
-    void vaultUnreachableAtStartup_failsFastWithActionableError() {
+    void vaultUnreachableAtStartupFailsFastWithActionableError() {
         runner.withBean(VaultOperations.class, () -> StubVaultTransit.unreachable("Connection refused"))
                 .withPropertyValues(
                         "jeap.jwe.enabled=true",
@@ -35,7 +35,7 @@ class JweFailFastStartupTest {
     }
 
     @Test
-    void staticModeWithoutVault_startsCleanlyAndPopulatesCache() {
+    void staticModeWithoutVaultStartsCleanlyAndPopulatesCache() {
         runner.withPropertyValues(
                         "jeap.jwe.enabled=true",
                         "jeap.jwe.test.enabled=true",

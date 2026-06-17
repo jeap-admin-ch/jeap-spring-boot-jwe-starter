@@ -48,6 +48,7 @@ class JweStarterVaultIT {
                     .withInitCommand(
                             "secrets enable transit",
                             "write -f transit/keys/" + KEY_NAME + " type=rsa-4096 exportable=true");
+    public static final String KEYS = "/keys/";
 
     static {
         VAULT.start();
@@ -77,7 +78,7 @@ class JweStarterVaultIT {
 
     @Test
     @Order(1)
-    void startup_jwksEndpointReturnsPublicKeysWithNoPrivateMaterial() throws Exception {
+    void startupJwksEndpointReturnsPublicKeysWithNoPrivateMaterial() throws Exception {
         ResponseEntity<String> response = jwksGet();
         String body = response.getBody();
         assertThat(body).isNotNull();
@@ -99,9 +100,9 @@ class JweStarterVaultIT {
 
     @Test
     @Order(2)
-    void refresh_picksUpRotatedKeyAsNewestVersion() throws Exception {
+    void refreshPicksUpRotatedKeyAsNewestVersion() throws Exception {
         // Rotate the transit key: latest_version becomes 2.
-        vaultOps.write(ENGINE + "/keys/" + KEY_NAME + "/rotate", Map.of());
+        vaultOps.write(ENGINE + KEYS + KEY_NAME + "/rotate", Map.of());
 
         // Wait for the periodic refresh to pick up the new version via the real HTTP endpoint.
         await().atMost(Duration.ofSeconds(10))
@@ -120,9 +121,9 @@ class JweStarterVaultIT {
 
     @Test
     @Order(3)
-    void refresh_evictsVersionsBelowMinDecryptionVersion() {
+    void refreshEvictsVersionsBelowMinDecryptionVersion() {
         // Rotate once more so we have versions 1, 2, 3.
-        vaultOps.write(ENGINE + "/keys/" + KEY_NAME + "/rotate", Map.of());
+        vaultOps.write(ENGINE + KEYS + KEY_NAME + "/rotate", Map.of());
 
         await().atMost(Duration.ofSeconds(10))
                 .pollInterval(Duration.ofMillis(500))
@@ -132,7 +133,7 @@ class JweStarterVaultIT {
                 });
 
         // Advance min_decryption_version to evict versions 1 and 2.
-        vaultOps.write(ENGINE + "/keys/" + KEY_NAME + "/config", Map.of("min_decryption_version", 3));
+        vaultOps.write(ENGINE + KEYS + KEY_NAME + "/config", Map.of("min_decryption_version", 3));
 
         // Wait for the refresh to evict old versions from the JWKS response.
         await().atMost(Duration.ofSeconds(10))

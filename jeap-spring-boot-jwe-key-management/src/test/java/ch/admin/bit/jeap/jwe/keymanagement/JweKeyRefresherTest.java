@@ -28,7 +28,7 @@ class JweKeyRefresherTest {
             new JweRefreshRetrySettings(Duration.ofMillis(10), 2.0, Duration.ofMillis(25), 4);
 
     @Test
-    void refresh_succeedsOnFirstAttempt_swapsCacheWithoutBackoff() {
+    void refreshSucceedsOnFirstAttemptSwapsCacheWithoutBackoff() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(cachedKey));
         CountingKeySource source = new CountingKeySource(0, List.of(cachedKey, newKey));
@@ -41,7 +41,7 @@ class JweKeyRefresherTest {
     }
 
     @Test
-    void refresh_retriesWithExponentialBackoff_thenSucceeds() {
+    void refreshRetriesWithExponentialBackoffThenSucceeds() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(cachedKey));
         CountingKeySource source = new CountingKeySource(2, List.of(cachedKey, newKey));
@@ -54,7 +54,7 @@ class JweKeyRefresherTest {
     }
 
     @Test
-    void refresh_exhaustsAttempts_keepsCachedKeysAndNeverThrows() {
+    void refreshExhaustsAttemptsKeepsCachedKeysAndNeverThrows() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(cachedKey));
         CountingKeySource source = new CountingKeySource(Integer.MAX_VALUE, List.of(newKey));
@@ -69,7 +69,7 @@ class JweKeyRefresherTest {
     }
 
     @Test
-    void refresh_recoversOnNextSuccessfulRefreshAfterAnOutage() {
+    void refreshRecoversOnNextSuccessfulRefreshAfterAnOutage() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(cachedKey));
         // Fails for all attempts of the first refresh, then succeeds on the next refresh.
@@ -104,9 +104,15 @@ class JweKeyRefresherTest {
         public List<RSAKey> loadActiveKeys() {
             calls++;
             if (calls <= failUntilCall) {
-                throw new RuntimeException("Vault unavailable (call " + calls + ")");
+                throw new TestVaultUnavailableException(calls);
             }
             return keys;
+        }
+    }
+
+    private static final class TestVaultUnavailableException extends IllegalStateException {
+        TestVaultUnavailableException(int call) {
+            super("Vault unavailable (call " + call + ")");
         }
     }
 }

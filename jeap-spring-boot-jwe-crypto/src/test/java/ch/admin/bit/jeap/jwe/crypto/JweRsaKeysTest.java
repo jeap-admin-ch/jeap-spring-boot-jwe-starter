@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.RSAKey;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
@@ -17,44 +18,46 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JweRsaKeysTest {
 
+    private static final String MY_KEY_VERSION_1 = "my-key:1";
+
     private static KeyPair rsa4096;
     private static KeyPair rsa2048;
-    private static KeyPair rsa3072;
 
     @BeforeAll
-    static void generateKeys() throws Exception {
+    static void generateKeys() throws GeneralSecurityException {
         rsa4096 = rsa(4096);
         rsa2048 = rsa(2048);
-        rsa3072 = rsa(3072);
     }
 
     @Test
-    void from_with4096Key_buildsEncryptionRsaKey() {
-        RSAKey key = JweRsaKeys.from(rsa4096, "my-key:1");
+    void fromWith4096KeyBuildsEncryptionRsaKey() {
+        RSAKey key = JweRsaKeys.from(rsa4096, MY_KEY_VERSION_1);
 
         assertThat(key.size()).isEqualTo(4096);
-        assertThat(key.getKeyID()).isEqualTo("my-key:1");
+        assertThat(key.getKeyID()).isEqualTo(MY_KEY_VERSION_1);
         assertThat(key.getKeyUse()).isEqualTo(KeyUse.ENCRYPTION);
         assertThat(key.getAlgorithm()).isEqualTo(JWEAlgorithm.RSA_OAEP_256);
         assertThat(key.isPrivate()).isTrue();
     }
 
     @Test
-    void from_with2048Key_rejected() {
+    void fromWith2048KeyRejected() {
         assertThatThrownBy(() -> JweRsaKeys.from(rsa2048, "k:1"))
                 .isInstanceOf(JweKeyValidationException.class)
                 .hasMessageContaining("4096");
     }
 
     @Test
-    void from_with3072Key_rejected() {
+    void fromWith3072KeyRejected() throws GeneralSecurityException {
+        KeyPair rsa3072 = rsa(3072);
+
         assertThatThrownBy(() -> JweRsaKeys.from(rsa3072, "k:1"))
                 .isInstanceOf(JweKeyValidationException.class)
                 .hasMessageContaining("4096");
     }
 
     @Test
-    void from_withNonRsaKey_rejected() throws Exception {
+    void fromWithNonRsaKeyRejected() throws GeneralSecurityException {
         KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
         gen.initialize(256);
         KeyPair ec = gen.generateKeyPair();
@@ -65,7 +68,7 @@ class JweRsaKeysTest {
     }
 
     @Test
-    void fromPem_roundTripsPrivateRsaKey() {
+    void fromPemRoundTripsPrivateRsaKey() {
         String pem = pem(rsa4096);
 
         RSAKey key = JweRsaKeys.fromPem(pem, "my-key:2");
@@ -78,32 +81,35 @@ class JweRsaKeysTest {
     }
 
     @Test
-    void fromPem_with2048Key_rejected() {
+    void fromPemWith2048KeyRejected() {
         String pem = pem(rsa2048);
+
         assertThatThrownBy(() -> JweRsaKeys.fromPem(pem, "k:1"))
                 .isInstanceOf(JweKeyValidationException.class)
                 .hasMessageContaining("4096");
     }
 
     @Test
-    void keyId_followsTransitKeyNameVersionScheme() {
+    void keyIdFollowsTransitKeyNameVersionScheme() {
         assertThat(JweRsaKeys.keyId("payment-key", 3)).isEqualTo("payment-key:3");
     }
 
     @Test
-    void keyId_isStableForSameInput() {
+    void keyIdIsStableForSameInput() {
         assertThat(JweRsaKeys.keyId("k", 7)).isEqualTo(JweRsaKeys.keyId("k", 7));
     }
 
     @Test
-    void keyId_rejectsBlankNameAndInvalidVersion() {
-        assertThatThrownBy(() -> JweRsaKeys.keyId("  ", 1)).isInstanceOf(JweKeyValidationException.class);
-        assertThatThrownBy(() -> JweRsaKeys.keyId("k", 0)).isInstanceOf(JweKeyValidationException.class);
+    void keyIdRejectsBlankNameAndInvalidVersion() {
+        assertThatThrownBy(() -> JweRsaKeys.keyId("  ", 1))
+                .isInstanceOf(JweKeyValidationException.class);
+        assertThatThrownBy(() -> JweRsaKeys.keyId("k", 0))
+                .isInstanceOf(JweKeyValidationException.class);
     }
 
     @Test
-    void publicJwkSet_containsPublicParamsOnly() {
-        RSAKey key = JweRsaKeys.from(rsa4096, "my-key:1");
+    void publicJwkSetContainsPublicParamsOnly() {
+        RSAKey key = JweRsaKeys.from(rsa4096, MY_KEY_VERSION_1);
 
         String json = JweRsaKeys.toPublicJwkSetJson(List.of(key));
 
@@ -123,15 +129,15 @@ class JweRsaKeysTest {
     }
 
     @Test
-    void publicJwkSet_toStringHasNoPrivateMaterial() {
-        RSAKey key = JweRsaKeys.from(rsa4096, "my-key:1");
+    void publicJwkSetToStringHasNoPrivateMaterial() {
+        RSAKey key = JweRsaKeys.from(rsa4096, MY_KEY_VERSION_1);
 
         JWKSet publicSet = JweRsaKeys.toPublicJwkSet(List.of(key));
 
         assertThat(publicSet.toString()).doesNotContain("\"d\":");
     }
 
-    private static KeyPair rsa(int size) throws Exception {
+    private static KeyPair rsa(int size) throws GeneralSecurityException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(size);
         return generator.generateKeyPair();

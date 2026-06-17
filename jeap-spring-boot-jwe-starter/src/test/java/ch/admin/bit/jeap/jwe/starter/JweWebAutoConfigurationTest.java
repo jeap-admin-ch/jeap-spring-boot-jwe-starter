@@ -30,7 +30,7 @@ class JweWebAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(JweAutoConfiguration.class, JweWebAutoConfiguration.class));
 
     @Test
-    void servletApp_enabled_registersJwksController() {
+    void servletAppEnabledRegistersJwksController() {
         servletRunner.withPropertyValues(STATIC_MODE).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(JweJwksController.class);
@@ -38,7 +38,7 @@ class JweWebAutoConfigurationTest {
     }
 
     @Test
-    void nonWebApp_registersControllerAndKeyStore() {
+    void nonWebAppRegistersControllerAndKeyStore() {
         nonWebRunner.withPropertyValues(STATIC_MODE).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(JweJwksController.class);
@@ -47,7 +47,7 @@ class JweWebAutoConfigurationTest {
     }
 
     @Test
-    void servletApp_disabled_doesNotRegisterController() {
+    void servletAppDisabledDoesNotRegisterController() {
         servletRunner.withPropertyValues("jeap.jwe.enabled=false").run(context ->
                 assertThat(context).doesNotHaveBean(JweJwksController.class));
     }

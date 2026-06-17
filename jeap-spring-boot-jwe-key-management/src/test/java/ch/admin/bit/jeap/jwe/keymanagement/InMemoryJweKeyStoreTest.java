@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class InMemoryJweKeyStoreTest {
 
     private static final String KEY_NAME = "payment-key";
+    public static final String PAYMENT_KEY_1 = "payment-key:1";
 
     private final RSAKey v1 = JweRsaKeys.from(JweTestKeys.rsa4096(0), JweRsaKeys.keyId(KEY_NAME, 1));
     private final RSAKey v2 = JweRsaKeys.from(JweTestKeys.rsa4096(1), JweRsaKeys.keyId(KEY_NAME, 2));
@@ -23,11 +24,11 @@ class InMemoryJweKeyStoreTest {
 
         assertThat(store.activeKeys()).isEmpty();
         assertThat(store.currentEncryptionKey()).isEmpty();
-        assertThat(store.findByKeyId("payment-key:1")).isEmpty();
+        assertThat(store.findByKeyId(PAYMENT_KEY_1)).isEmpty();
     }
 
     @Test
-    void replaceKeys_ordersNewestVersionFirstRegardlessOfInputOrder() {
+    void replaceKeysOrdersNewestVersionFirstRegardlessOfInputOrder() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
 
         store.replaceKeys(List.of(v1, v3, v2));
@@ -37,17 +38,17 @@ class InMemoryJweKeyStoreTest {
     }
 
     @Test
-    void findByKeyId_hitAndMiss() {
+    void findByKeyIdHitAndMiss() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(v1, v2));
 
         assertThat(store.findByKeyId("payment-key:2")).contains(v2);
-        assertThat(store.findByKeyId("payment-key:1")).contains(v1);
+        assertThat(store.findByKeyId(PAYMENT_KEY_1)).contains(v1);
         assertThat(store.findByKeyId("payment-key:99")).isEmpty();
     }
 
     @Test
-    void replaceKeys_swapsSnapshotAtomically() {
+    void replaceKeysSwapsSnapshotAtomically() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(v1));
         List<RSAKey> beforeSwap = store.activeKeys();
@@ -58,6 +59,6 @@ class InMemoryJweKeyStoreTest {
         assertThat(beforeSwap).containsExactly(v1);
         assertThat(store.activeKeys()).containsExactly(v3, v2);
         assertThat(store.currentEncryptionKey()).contains(v3);
-        assertThat(store.findByKeyId("payment-key:1")).isEmpty();
+        assertThat(store.findByKeyId(PAYMENT_KEY_1)).isEmpty();
     }
 }
