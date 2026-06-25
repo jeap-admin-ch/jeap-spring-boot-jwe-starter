@@ -29,7 +29,7 @@ class JweVaultAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(JweAutoConfiguration.class, JweVaultAutoConfiguration.class));
 
     @Test
-    void vaultMode_withVaultOperationsContributesVaultSourceAndPopulatesStore() {
+    void vaultModeWithVaultOperationsContributesVaultSourceAndPopulatesStore() {
         runner.withBean(VaultOperations.class, () -> StubVaultTransit.withSingleVersion(ENGINE, KEY_NAME))
                 .withPropertyValues(
                         JEAP_JWE_ENABLED_TRUE,
@@ -54,9 +54,10 @@ class JweVaultAutoConfigurationTest {
                         JEAP_JWE_VAULT_TRANSIT_KEY_NAME + KEY_NAME,
                         "jeap.vault.system-name=my-system")
                 .run(context -> {
+                    // A successful load proves the path was derived as transit/my-system (the stub only
+                    // answers on that path); the configuration properties are not mutated to hold it.
                     assertThat(context).hasNotFailed();
-                    assertThat(context.getBean(JweProperties.class).getVault().getSecretEnginePath())
-                            .isEqualTo("transit/my-system");
+                    assertThat(context.getBean(JweProperties.class).getVault().getSecretEnginePath()).isNull();
                     assertThat(context.getBean(JweKeyStore.class).currentEncryptionKey()).get()
                             .extracting(JWK::getKeyID).isEqualTo(KEY_NAME + ":1");
                 });

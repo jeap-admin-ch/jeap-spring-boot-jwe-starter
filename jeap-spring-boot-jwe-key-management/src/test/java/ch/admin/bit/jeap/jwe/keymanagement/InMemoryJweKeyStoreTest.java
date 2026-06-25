@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class InMemoryJweKeyStoreTest {
 
@@ -45,6 +46,17 @@ class InMemoryJweKeyStoreTest {
         assertThat(store.findByKeyId("payment-key:2")).contains(v2);
         assertThat(store.findByKeyId(PAYMENT_KEY_1)).contains(v1);
         assertThat(store.findByKeyId("payment-key:99")).isEmpty();
+    }
+
+    @Test
+    void replaceKeysRejectsNonNumericVersionSuffix() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+        RSAKey malformed = JweRsaKeys.from(JweTestKeys.rsa4096(0), KEY_NAME + ":abc");
+        List<RSAKey> keys = List.of(malformed);
+
+        assertThatThrownBy(() -> store.replaceKeys(keys))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("non-numeric version");
     }
 
     @Test

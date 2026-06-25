@@ -7,7 +7,7 @@
     <parent>
         <groupId>ch.admin.bit.jeap</groupId>
         <artifactId>jeap-spring-boot-jwe-starter-parent</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jeap-spring-boot-jwe-starter</artifactId>
@@ -31,10 +31,32 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
+        <!-- Servlet API for the servlet-filter registration (FilterRegistrationBean<JweServletFilter>);
+             supplied by the consuming application's web stack. -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Optional Spring Security: only used to auto-permit the public JWKS and protocol-metadata
+             endpoints when the consuming app secures its requests. Optional, so it is not pulled into
+             apps without Spring Security; the security auto-configuration is gated on @ConditionalOnClass
+             and is a no-op when these types are absent. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-config</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
             <optional>true</optional>
         </dependency>
 

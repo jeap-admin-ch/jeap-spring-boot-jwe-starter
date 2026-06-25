@@ -89,21 +89,38 @@ public class JweAutoConfiguration {
 
     @PostConstruct
     void initializeConfiguration() {
-        applyDefaults();
         validate();
         validateRefresh();
-        log.info("jEAP JWE encryption enabled (mode={}, jwksPath={}).",
-                isVaultMode() ? "vault" : "static-test", properties.getJwks().getPath());
+        logConfiguration();
     }
 
-    private void applyDefaults() {
-        JweProperties.Vault vault = properties.getVault();
-        if (!StringUtils.hasText(vault.getSecretEnginePath())) {
-            String systemName = environment.getProperty("jeap.vault.system-name");
-            if (StringUtils.hasText(systemName)) {
-                vault.setSecretEnginePath("transit/" + systemName);
-            }
+    /**
+     * Logs the effective starter configuration at INFO on startup. Sensitive values are never logged:
+     * the only secret carried by {@link JweProperties} is the static test key material, which its
+     * {@code toString()} already redacts; Vault credentials live in {@code spring.cloud.vault.*} and
+     * are not part of this configuration. The resolved secret-engine path is added in Vault mode
+     * because it may be derived from {@code jeap.vault.system-name} rather than configured directly.
+     */
+    private void logConfiguration() {
+        boolean vaultMode = isVaultMode();
+        log.info("jEAP JWE encryption enabled (mode={}{}). Effective configuration (key material redacted): {}",
+                vaultMode ? "vault" : "static-test",
+                vaultMode ? ", resolvedSecretEnginePath=" + resolveSecretEnginePath(properties, environment) : "",
+                properties);
+    }
+
+    /**
+     * Resolves the effective Vault transit secret-engine path without mutating the configuration: the
+     * explicitly configured value, or {@code transit/<jeap.vault.system-name>} when only the system name
+     * is set, or {@code null} when neither is available.
+     */
+    static String resolveSecretEnginePath(JweProperties properties, Environment environment) {
+        String configured = properties.getVault().getSecretEnginePath();
+        if (StringUtils.hasText(configured)) {
+            return configured;
         }
+        String systemName = environment.getProperty("jeap.vault.system-name");
+        return StringUtils.hasText(systemName) ? "transit/" + systemName : null;
     }
 
     private void validate() {
@@ -113,7 +130,7 @@ public class JweAutoConfiguration {
                         "jeap.jwe.vault.transit-key-name must be set when JWE encryption is enabled with Vault. " +
                                 "For tests without Vault, set jeap.jwe.test.enabled=true.");
             }
-            if (!StringUtils.hasText(properties.getVault().getSecretEnginePath())) {
+            if (resolveSecretEnginePath(properties, environment) == null) {
                 throw new IllegalStateException(
                         "jeap.jwe.vault.secret-engine-path must be set, or provide jeap.vault.system-name " +
                                 "to derive transit/<system-name>.");

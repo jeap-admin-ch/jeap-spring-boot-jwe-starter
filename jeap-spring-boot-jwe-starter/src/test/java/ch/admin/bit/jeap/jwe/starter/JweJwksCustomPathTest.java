@@ -51,6 +51,8 @@ class JweJwksCustomPathTest {
                 .get().uri("/.well-known/jwks.json")
                 .exchange((_, response) -> response.getStatusCode());
 
+        // The default path is no longer the JWKS route, and it is not an API path the filter applies
+        // to, so it is simply not served (404) rather than a JWK set.
         assertThat(status).isEqualTo(HttpStatus.NOT_FOUND);
     }
 

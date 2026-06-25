@@ -53,6 +53,8 @@ public class InMemoryJweKeyStore implements JweKeyStore {
         }
 
         static Snapshot of(Collection<RSAKey> keys) {
+            // Validate every kid up front: a single-element sort would not invoke the comparator.
+            keys.forEach(Snapshot::versionOf);
             List<RSAKey> ordered = keys.stream()
                     .sorted(Comparator.comparingInt(Snapshot::versionOf).reversed())
                     .toList();
@@ -68,11 +70,18 @@ public class InMemoryJweKeyStore implements JweKeyStore {
          */
         private static int versionOf(RSAKey key) {
             String kid = key.getKeyID();
-            if (kid == null || kid.lastIndexOf(':') < 0 || kid.endsWith(":")) {
-                throw new IllegalArgumentException("Key ID does not contain a version suffix: " + kid);
+            if (kid == null) {
+                throw new IllegalArgumentException("Key ID is missing");
             }
             int separator = kid.lastIndexOf(':');
-            return Integer.parseInt(kid.substring(separator + 1));
+            if (separator < 0 || separator == kid.length() - 1) {
+                throw new IllegalArgumentException("Key ID does not contain a version suffix: " + kid);
+            }
+            try {
+                return Integer.parseInt(kid.substring(separator + 1));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Key ID has a non-numeric version suffix: " + kid, e);
+            }
         }
     }
 }

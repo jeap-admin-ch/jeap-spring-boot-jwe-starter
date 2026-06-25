@@ -7,6 +7,8 @@ package ch.admin.bit.jeap.jwe.crypto;
  */
 public class JweKeyValidationException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     public JweKeyValidationException(String message) {
         super(message);
     }

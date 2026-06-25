@@ -48,9 +48,14 @@ The endpoint produces `application/json`.
 ## Security
 
 The endpoint is unauthenticated by design - public keys are meant to be distributed to clients.
-Ensure your security configuration permits unauthenticated access to the JWKS path.
+When Spring Security is on the classpath, the starter automatically permits unauthenticated access
+to the JWKS path (and the protocol-metadata path) via a dedicated `SecurityFilterChain`, so no
+manual `permitAll` rule is required. Opt out with `jeap.jwe.security.permit-well-known-endpoints=false`
+to manage access yourself (see [Using with jeap-security](servlet-filter.md#using-with-jeap-security)).
 
 ## Related
 
 - [Configuration reference](configuration.md)
 - [Key management](key-management.md)
+- [Servlet filter](servlet-filter.md)
+- [Client integration](client-integration.md)

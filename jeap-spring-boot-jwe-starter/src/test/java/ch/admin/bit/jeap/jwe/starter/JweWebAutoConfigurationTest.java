@@ -38,10 +38,11 @@ class JweWebAutoConfigurationTest {
     }
 
     @Test
-    void nonWebAppRegistersControllerAndKeyStore() {
+    void nonWebAppRegistersKeyStoreButNoWebBeans() {
+        // Web beans (JWKS controller, filter, metadata) are servlet-only; the key store is not.
         nonWebRunner.withPropertyValues(STATIC_MODE).run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(JweJwksController.class);
+            assertThat(context).doesNotHaveBean(JweJwksController.class);
             assertThat(context).hasSingleBean(JweKeyStore.class);
         });
     }

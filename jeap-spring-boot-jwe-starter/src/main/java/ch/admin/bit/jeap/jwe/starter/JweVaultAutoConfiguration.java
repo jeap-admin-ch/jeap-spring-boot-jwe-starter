@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.vault.core.VaultOperations;
 
 /**
@@ -28,10 +29,10 @@ public class JweVaultAutoConfiguration {
     @ConditionalOnBean(VaultOperations.class)
     @ConditionalOnMissingBean(JweKeySource.class)
     @ConditionalOnProperty(prefix = "jeap.jwe.test", name = "enabled", havingValue = "false", matchIfMissing = true)
-    JweKeySource vaultJweKeySource(VaultOperations vaultOperations, JweProperties properties) {
+    JweKeySource vaultJweKeySource(VaultOperations vaultOperations, JweProperties properties, Environment environment) {
         return new VaultJweKeySource(
                 vaultOperations,
-                properties.getVault().getSecretEnginePath(),
+                JweAutoConfiguration.resolveSecretEnginePath(properties, environment),
                 properties.getVault().getTransitKeyName(),
                 properties.getVault().getMinKeyVersion());
     }

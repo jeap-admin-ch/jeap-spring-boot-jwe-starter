@@ -3,6 +3,30 @@
     {
       "name": "jeap.jwe.jwks.path",
       "defaultValue": "/.well-known/jwks.json"
+    },
+    {
+      "name": "jeap.jwe.metadata.path",
+      "defaultValue": "/.well-known/jwe-configuration"
+    },
+    {
+      "name": "jeap.jwe.filter.included-paths",
+      "defaultValue": [
+        "/*api*/**"
+      ]
+    },
+    {
+      "name": "jeap.jwe.filter.content-type-allowlist",
+      "defaultValue": [
+        "application/json"
+      ]
+    },
+    {
+      "name": "jeap.jwe.filter.problem-type-base-uri",
+      "defaultValue": "https://jeap.bit.admin.ch/problems/jwe"
+    },
+    {
+      "name": "jeap.jwe.filter.max-payload-bytes",
+      "defaultValue": 5242880
     }
   ]
 }

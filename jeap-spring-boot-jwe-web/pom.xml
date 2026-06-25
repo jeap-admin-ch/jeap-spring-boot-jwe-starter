@@ -7,7 +7,7 @@
     <parent>
         <groupId>ch.admin.bit.jeap</groupId>
         <artifactId>jeap-spring-boot-jwe-starter-parent</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jeap-spring-boot-jwe-web</artifactId>
@@ -23,12 +23,40 @@
             <artifactId>jeap-spring-boot-jwe-key-management</artifactId>
         </dependency>
 
-        <!-- Servlet web stack only. Provided: the consuming application supplies Spring MVC (e.g. via
-             spring-boot-starter-web); reactive/WebFlux is not supported. -->
+        <!-- Servlet web stack only. Provided: the consuming application supplies Spring MVC (e.g. via spring-boot-starter-web) -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <!-- Servlet API for the JWE servlet filter; supplied by the consuming application's web stack. -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Jackson (3.x, shipped with Spring Boot) to serialize the problem+json error bodies; provided
+             by the consuming application's web stack alongside Spring MVC. -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.bit.jeap</groupId>
+            <artifactId>jeap-spring-boot-jwe-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

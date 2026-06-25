@@ -10,8 +10,9 @@ find it useful. Keep this file up to date as the project evolves.
 
 - Manages Vault-backed RSA key material (load at startup, refresh, rotation).
 - Exposes the backend public keys as a **JWKS endpoint** (RFC 7517).
-- Decrypts incoming `application/jose` requests and encrypts JSON responses, transparently
-  to controllers (later epics).
+- Decrypts incoming `application/jose` requests and encrypts responses, transparently to
+  controllers, via a servlet filter (`JweServletFilter`), with mandatory-encryption
+  enforcement returning RFC 7807 `problem+json` errors.
 
 Algorithms: `RSA-OAEP-256` for the content-encryption-key, `A256GCM` for the payload.
 Only established JOSE libraries are used (Nimbus JOSE+JWT on the server). **No custom
@@ -24,9 +25,10 @@ docs/                                      # Documentation
 pom.xml                                    # Parent POM (packaging=pom); declares the modules below
 jeap-spring-boot-jwe-crypto/               # Pure JOSE/crypto (Nimbus); no Spring
 jeap-spring-boot-jwe-key-management/       # Key-store abstraction, cache, static + Vault key sources
-jeap-spring-boot-jwe-web/                  # JWKS endpoint (servlet stack only)
+jeap-spring-boot-jwe-web/                  # JWKS + metadata endpoints, JWE servlet filter (servlet stack only)
 jeap-spring-boot-jwe-starter/              # @AutoConfiguration, configuration properties, wiring
 jeap-spring-boot-jwe-test/                 # Shared test infrastructure (reusable RSA test keys), test scope
+jeap-spring-boot-jwe-security-it/          # Coexistence ITs with jeap-spring-boot-security-starter (test-only, but published)
 Jenkinsfile                                # jEAP build pipeline (master / feature / hotfix)
 publiccode.yml, CHANGELOG.md, LICENSE, SECURITY.md, THIRD-PARTY-LICENSES.md
 ```
@@ -43,14 +45,20 @@ Dependency direction is acyclic: `crypto` ← `key-management` ← `web` ← `st
   (`StaticJweKeySource`) and the Vault transit source (`VaultJweKeySource`). A `JweKeyLoader`
   performs the fail-fast startup load; `JweKeyRefresher` + `JweKeyRefreshScheduler` do the
   periodic, outage-resilient refresh. Depends on Spring Cloud Vault.
-- `…-jwe-web` — the web layer: the JWKS endpoint (`JweJwksController`) and the servlet filter
-  for request decryption / response encryption (filter logic lands in a later epic). Depends
-  on key-management. **Servlet stack only** (see constraint below).
+- `…-jwe-web` — the web layer: the JWKS endpoint (`JweJwksController`), the protocol-metadata
+  endpoint (`JweMetadataController`) and the servlet filter (`JweServletFilter`) for request
+  decryption / response encryption, including the include/exclude path model (`JweFilterPaths`)
+  and the `problem+json` error writer (`JweProblemWriter`, serialized with Jackson). Depends on
+  key-management. **Servlet stack only** (see constraint below).
 - `…-jwe-starter` — `@AutoConfiguration` (`JweAutoConfiguration`, `JweVaultAutoConfiguration`,
   `JweWebAutoConfiguration`), configuration properties, wiring. Depends on key-management and
   web.
 - `…-jwe-test` — shared test infrastructure (reusable 4096-bit RSA test keys via `JweTestKeys`);
   depended on with `<scope>test</scope>`. Not for production use.
+- `…-jwe-security-it` — integration tests proving the JWE filter coexists with
+  `jeap-spring-boot-security-starter` (auth at order `-100`, JWE at order `0`). Isolates the
+  jeap-security dependency to a test scope so it never reaches the published starter. Has only
+  test sources, so it attaches an empty javadoc jar (Maven Central requires one).
 
 > **Servlet-only support.** This starter targets the Spring MVC / Jakarta Servlet stack
 > only. Reactive (Spring WebFlux) is **not** supported. Web beans are gated on a servlet
@@ -59,8 +67,8 @@ Dependency direction is acyclic: `crypto` ← `key-management` ← `web` ← `st
 
 ## Build & test
 
-Use the Maven wrapper (`./mvnw`). Toolchain: **Java 25**, Maven 3.9.16, parent
-`ch.admin.bit.jeap:jeap-internal-spring-boot-parent:7.0.0`.
+Use the Maven wrapper (`./mvnw`). Toolchain: **Java 25**, parent
+`ch.admin.bit.jeap:jeap-internal-spring-boot-parent:8.3.3`.
 
 ```bash
 ./mvnw clean install          # full build + tests

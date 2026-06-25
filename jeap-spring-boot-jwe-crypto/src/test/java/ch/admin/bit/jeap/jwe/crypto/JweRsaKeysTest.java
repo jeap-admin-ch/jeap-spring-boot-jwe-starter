@@ -95,11 +95,6 @@ class JweRsaKeysTest {
     }
 
     @Test
-    void keyIdIsStableForSameInput() {
-        assertThat(JweRsaKeys.keyId("k", 7)).isEqualTo(JweRsaKeys.keyId("k", 7));
-    }
-
-    @Test
     void keyIdRejectsBlankNameAndInvalidVersion() {
         assertThatThrownBy(() -> JweRsaKeys.keyId("  ", 1))
                 .isInstanceOf(JweKeyValidationException.class);

@@ -2,7 +2,8 @@
 
 The starter manages RSA key material entirely in memory. Keys are loaded at startup and
 periodically refreshed from Vault. The key store is the single source of truth for all
-components (JWKS endpoint, future request/response encryption filter).
+components (the [JWKS endpoint](jwks-endpoint.md) and the [servlet filter](servlet-filter.md) that
+decrypts requests and encrypts responses).
 
 ## Key Store
 
@@ -69,3 +70,5 @@ are never accepted.
 - [Configuration reference](configuration.md)
 - [Vault integration](vault-integration.md)
 - [JWKS endpoint](jwks-endpoint.md)
+- [Servlet filter](servlet-filter.md)
+- [Client integration](client-integration.md)

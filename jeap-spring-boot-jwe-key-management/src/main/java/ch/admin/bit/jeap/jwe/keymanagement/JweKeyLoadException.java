@@ -6,6 +6,8 @@ package ch.admin.bit.jeap.jwe.keymanagement;
  */
 public class JweKeyLoadException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     public JweKeyLoadException(String message) {
         super(message);
     }
