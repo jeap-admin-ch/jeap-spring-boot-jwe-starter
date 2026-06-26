@@ -40,6 +40,7 @@ public final class JweResponseEncryptor {
         }
         JWEObject jwe = new JWEObject(header.build(), new Payload(plaintext));
         try {
+            JweCryptoProvider.ensureInstalled();
             jwe.encrypt(new DirectEncrypter(cek));
         } catch (JOSEException e) {
             throw new JweEncryptionException("Could not encrypt the response", e);

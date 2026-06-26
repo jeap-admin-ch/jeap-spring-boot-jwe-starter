@@ -7,7 +7,7 @@
     <parent>
         <groupId>ch.admin.bit.jeap</groupId>
         <artifactId>jeap-spring-boot-jwe-starter-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>jeap-spring-boot-jwe-crypto</artifactId>
@@ -26,6 +26,27 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk18on</artifactId>
+        </dependency>
+
+        <!-- Amazon Corretto Crypto Provider (ACCP): native, FIPS-grade JCA provider used to accelerate
+             the RSA-OAEP and AES-GCM operations. Installed at top priority and used by Nimbus when its
+             self-test passes; the code falls back to the JDK provider otherwise. Same approach and the
+             same two shipped classifiers as jeap-crypto-core. Version is managed by the parent. -->
+        <dependency>
+            <groupId>software.amazon.cryptools</groupId>
+            <artifactId>AmazonCorrettoCryptoProvider</artifactId>
+            <classifier>linux-x86_64</classifier>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.cryptools</groupId>
+            <artifactId>AmazonCorrettoCryptoProvider</artifactId>
+            <classifier>osx-aarch_64</classifier>
+        </dependency>
+
+        <!-- Logging facade for the provider fallback diagnostics (provided by the consuming app at runtime). -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
 
         <dependency>

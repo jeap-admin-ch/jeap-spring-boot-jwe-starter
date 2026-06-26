@@ -32,7 +32,23 @@ Apache License Version 2.0
  * Apache Commons IO - [commons-io:commons-io](https://commons.apache.org/proper/commons-io/)
  * Apache Commons Logging - [commons-logging:commons-logging](https://commons.apache.org/proper/commons-logging/)
  * micrometer-commons - [io.micrometer:micrometer-commons](https://github.com/micrometer-metrics/micrometer)
+* micrometer-core - [io.micrometer:micrometer-core](https://github.com/micrometer-metrics/micrometer)
+* micrometer-jakarta9 - [io.micrometer:micrometer-jakarta9](https://github.com/micrometer-metrics/micrometer)
  * micrometer-observation - [io.micrometer:micrometer-observation](https://github.com/micrometer-metrics/micrometer)
+*
+micrometer-registry-prometheus - [io.micrometer:micrometer-registry-prometheus](https://github.com/micrometer-metrics/micrometer)
+* Prometheus Metrics
+  Config - [io.prometheus:prometheus-metrics-config](http://github.com/prometheus/client_java/client_java/prometheus-metrics-config)
+* Prometheus Metrics
+  Core - [io.prometheus:prometheus-metrics-core](http://github.com/prometheus/client_java/client_java/prometheus-metrics-core)
+* Prometheus Metrics Exposition
+  Formats - [io.prometheus:prometheus-metrics-exposition-formats](http://github.com/prometheus/client_java/client_java/prometheus-metrics-exposition-formats)
+* Prometheus Metrics Exposition Text
+  Formats - [io.prometheus:prometheus-metrics-exposition-textformats](http://github.com/prometheus/client_java/client_java/prometheus-metrics-exposition-textformats)
+* Prometheus Metrics
+  Model - [io.prometheus:prometheus-metrics-model](http://github.com/prometheus/client_java/client_java/prometheus-metrics-model)
+* Prometheus Metrics Tracer
+  Common - [io.prometheus:prometheus-metrics-tracer-common](http://github.com/prometheus/client_java/client_java/prometheus-metrics-tracer/prometheus-metrics-tracer-common)
  * Jakarta Validation API - [jakarta.validation:jakarta.validation-api](https://beanvalidation.org)
  * Byte Buddy (without dependencies) - [net.bytebuddy:byte-buddy](https://bytebuddy.net/byte-buddy)
  * Byte Buddy agent - [net.bytebuddy:byte-buddy-agent](https://bytebuddy.net/byte-buddy-agent)
@@ -69,19 +85,31 @@ Apache License Version 2.0
  * Spring Web - [org.springframework:spring-web](https://github.com/spring-projects/spring-framework)
  * Spring Web MVC - [org.springframework:spring-webmvc](https://github.com/spring-projects/spring-framework)
  * spring-boot - [org.springframework.boot:spring-boot](https://spring.io/projects/spring-boot)
+* spring-boot-actuator - [org.springframework.boot:spring-boot-actuator](https://spring.io/projects/spring-boot)
+*
+spring-boot-actuator-autoconfigure - [org.springframework.boot:spring-boot-actuator-autoconfigure](https://spring.io/projects/spring-boot)
  * spring-boot-autoconfigure - [org.springframework.boot:spring-boot-autoconfigure](https://spring.io/projects/spring-boot)
  * spring-boot-configuration-processor - [org.springframework.boot:spring-boot-configuration-processor](https://spring.io/projects/spring-boot)
+* spring-boot-health - [org.springframework.boot:spring-boot-health](https://spring.io/projects/spring-boot)
  * spring-boot-http-client - [org.springframework.boot:spring-boot-http-client](https://spring.io/projects/spring-boot)
  * spring-boot-http-converter - [org.springframework.boot:spring-boot-http-converter](https://spring.io/projects/spring-boot)
  * spring-boot-jackson - [org.springframework.boot:spring-boot-jackson](https://spring.io/projects/spring-boot)
+*
+spring-boot-micrometer-metrics - [org.springframework.boot:spring-boot-micrometer-metrics](https://spring.io/projects/spring-boot)
+*
+spring-boot-micrometer-observation - [org.springframework.boot:spring-boot-micrometer-observation](https://spring.io/projects/spring-boot)
  * spring-boot-restclient - [org.springframework.boot:spring-boot-restclient](https://spring.io/projects/spring-boot)
  * spring-boot-security - [org.springframework.boot:spring-boot-security](https://spring.io/projects/spring-boot)
  * spring-boot-security-oauth2-client - [org.springframework.boot:spring-boot-security-oauth2-client](https://spring.io/projects/spring-boot)
  * spring-boot-security-oauth2-resource-server - [org.springframework.boot:spring-boot-security-oauth2-resource-server](https://spring.io/projects/spring-boot)
  * spring-boot-servlet - [org.springframework.boot:spring-boot-servlet](https://spring.io/projects/spring-boot)
  * spring-boot-starter - [org.springframework.boot:spring-boot-starter](https://spring.io/projects/spring-boot)
+*
+spring-boot-starter-actuator - [org.springframework.boot:spring-boot-starter-actuator](https://spring.io/projects/spring-boot)
  * spring-boot-starter-jackson - [org.springframework.boot:spring-boot-starter-jackson](https://spring.io/projects/spring-boot)
  * spring-boot-starter-logging - [org.springframework.boot:spring-boot-starter-logging](https://spring.io/projects/spring-boot)
+*
+spring-boot-starter-micrometer-metrics - [org.springframework.boot:spring-boot-starter-micrometer-metrics](https://spring.io/projects/spring-boot)
  * spring-boot-starter-restclient - [org.springframework.boot:spring-boot-starter-restclient](https://spring.io/projects/spring-boot)
  * spring-boot-starter-security - [org.springframework.boot:spring-boot-starter-security](https://spring.io/projects/spring-boot)
  * spring-boot-starter-security-oauth2-client - [org.springframework.boot:spring-boot-starter-security-oauth2-client](https://spring.io/projects/spring-boot)
@@ -113,8 +141,15 @@ Apache License Version 2.0
  * WireMock - [org.wiremock:wiremock-standalone](http://wiremock.org)
  * org.xmlunit:xmlunit-core - [org.xmlunit:xmlunit-core](https://www.xmlunit.org/)
  * SnakeYAML - [org.yaml:snakeyaml](https://bitbucket.org/snakeyaml/snakeyaml)
+* Amazon Corretto Crypto
+  Provider - [software.amazon.cryptools:AmazonCorrettoCryptoProvider](https://github.com/corretto/amazon-corretto-crypto-provider)
  * Jackson-core - [tools.jackson.core:jackson-core](https://github.com/FasterXML/jackson-core)
  * jackson-databind - [tools.jackson.core:jackson-databind](https://github.com/FasterXML/jackson)
+
+BSD 2-Clause License
+-------------------------------
+
+* HdrHistogram - [org.hdrhistogram:HdrHistogram](http://hdrhistogram.github.io/HdrHistogram/)
 
 BSD License 3
 -------------------------------
@@ -183,3 +218,8 @@ MIT License
  * Testcontainers Core - [org.testcontainers:testcontainers](https://java.testcontainers.org)
  * Testcontainers :: JUnit Jupiter Extension - [org.testcontainers:testcontainers-junit-jupiter](https://java.testcontainers.org)
  * Testcontainers :: Vault - [org.testcontainers:testcontainers-vault](https://java.testcontainers.org)
+
+Public Domain
+-------------------------------
+
+* HdrHistogram - [org.hdrhistogram:HdrHistogram](http://hdrhistogram.github.io/HdrHistogram/)

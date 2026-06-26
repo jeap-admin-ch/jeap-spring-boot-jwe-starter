@@ -39,6 +39,7 @@ module is a test-only leaf depending on `…-starter`.
 | Key management internals | [docs/key-management.md](docs/key-management.md)         |
 | JWKS endpoint            | [docs/jwks-endpoint.md](docs/jwks-endpoint.md)           |
 | Vault integration        | [docs/vault-integration.md](docs/vault-integration.md)   |
+| Observability (metrics)  | [docs/observability.md](docs/observability.md)           |
 | Testing without Vault    | [docs/testing.md](docs/testing.md)                       |
 
 ## See

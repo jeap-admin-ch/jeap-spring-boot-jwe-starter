@@ -15,6 +15,10 @@ working with plain JSON and never see any cryptography.
 - **On the wire:** `application/jose` (compact JWE)
 - **Libraries:** Nimbus JOSE+JWT on the server, [`jose`](https://github.com/panva/jose) on the
   client. **No custom cryptography.**
+- **Crypto provider:**
+  the [Amazon Corretto Crypto Provider](https://github.com/corretto/amazon-corretto-crypto-provider)
+  (ACCP) is installed at top JCA priority to accelerate the RSA-OAEP and AES-GCM operations, with an
+  automatic fallback to the JDK provider when the native library is unavailable on the platform.
 
 ## The big picture
 
@@ -268,4 +272,5 @@ end by the `jeap-spring-boot-jwe-security-it` module. See
 | Build a non-Angular client | [Client integration](client-integration.md) |
 | Understand key lifecycle | [Key management](key-management.md) |
 | Configure Vault | [Vault integration](vault-integration.md) |
+| Monitor it / verify E2E encryption | [Observability (metrics)](observability.md) |
 | Run without Vault | [Testing without Vault](testing.md) |

@@ -29,15 +29,25 @@ public class JweKeyRefresher {
 
     private final JweKeyLoader keyLoader;
     private final JweRefreshRetrySettings retry;
+    private final JweMetrics metrics;
     private final Sleeper sleeper;
 
     public JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry) {
-        this(keyLoader, retry, Thread::sleep);
+        this(keyLoader, retry, JweMetrics.NOOP);
+    }
+
+    public JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry, JweMetrics metrics) {
+        this(keyLoader, retry, metrics, Thread::sleep);
     }
 
     JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry, Sleeper sleeper) {
+        this(keyLoader, retry, JweMetrics.NOOP, sleeper);
+    }
+
+    JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry, JweMetrics metrics, Sleeper sleeper) {
         this.keyLoader = keyLoader;
         this.retry = retry;
+        this.metrics = metrics;
         this.sleeper = sleeper;
     }
 
@@ -51,11 +61,13 @@ public class JweKeyRefresher {
         for (int attempt = 1; attempt <= retry.maxAttempts(); attempt++) {
             try {
                 keyLoader.refresh();
+                metrics.recordRefresh(true);
                 return;
             } catch (JweKeyLoadException e) {
                 if (attempt >= retry.maxAttempts()) {
                     log.warn("JWE key refresh failed after {} attempt(s); continuing to serve the cached keys. "
                             + "Cause: {}", attempt, e.getMessage());
+                    metrics.recordRefresh(false);
                     return;
                 }
                 log.warn("JWE key refresh attempt {}/{} failed: {}. Retrying in {} ms.",

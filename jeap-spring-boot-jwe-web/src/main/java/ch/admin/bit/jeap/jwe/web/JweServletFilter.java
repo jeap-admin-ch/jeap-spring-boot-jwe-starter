@@ -5,6 +5,7 @@ import ch.admin.bit.jeap.jwe.crypto.JweProtocolException;
 import ch.admin.bit.jeap.jwe.crypto.JweRequestDecryptor;
 import ch.admin.bit.jeap.jwe.crypto.JweResponseEncryptor;
 import ch.admin.bit.jeap.jwe.keymanagement.JweKeyStore;
+import ch.admin.bit.jeap.jwe.keymanagement.JweMetrics;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +20,7 @@ import org.springframework.web.util.ServletRequestPathUtils;
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 
@@ -70,12 +72,19 @@ public final class JweServletFilter extends OncePerRequestFilter {
     private final JweKeyStore keyStore;
     private final JweFilterSettings settings;
     private final JweProblemWriter problemWriter;
+    private final JweMetrics metrics;
 
     public JweServletFilter(JweFilterPaths filterPaths, JweKeyStore keyStore, JweFilterSettings settings) {
+        this(filterPaths, keyStore, settings, JweMetrics.NOOP);
+    }
+
+    public JweServletFilter(JweFilterPaths filterPaths, JweKeyStore keyStore, JweFilterSettings settings,
+                            JweMetrics metrics) {
         this.filterPaths = filterPaths;
         this.keyStore = keyStore;
         this.settings = settings;
         this.problemWriter = new JweProblemWriter(settings.problemTypeBaseUri());
+        this.metrics = metrics;
     }
 
     @Override
@@ -102,47 +111,20 @@ public final class JweServletFilter extends OncePerRequestFilter {
         // BODY_METHODS/RESPONSE_METHODS, so they intentionally fall through to plain pass-through
         // (no encryption enforced); path scoping and downstream auth remain in effect.
         HttpMethod method = HttpMethod.valueOf(request.getMethod());
-        HttpServletRequest effectiveRequest = request;
 
         // 1) Request body: decrypt it (POST/PUT/PATCH with application/jose), else enforce.
-        if (BODY_METHODS.contains(method)) {
-            if (JweProtocol.isJose(request.getContentType())) {
-                Optional<byte[]> body = readBoundedBody(request, response);
-                if (body.isEmpty()) {
-                    return; // 413 problem already written
-                }
-                effectiveRequest = decryptRequest(request, body.get());
-            } else if (settings.requireEncryptedRequest()) {
-                problemWriter.write(request, response, JweErrorCode.REQUEST_ENCRYPTION_REQUIRED);
-                return;
-            }
+        Optional<HttpServletRequest> prepared = prepareRequest(request, response, method);
+        if (prepared.isEmpty()) {
+            return; // a problem response has been written
         }
+        HttpServletRequest effectiveRequest = prepared.get();
 
         // 2) Response: always encrypted with the client's JWE-Response-Key CEK (never the request CEK).
-        SecretKey responseCek = null;
-        if (RESPONSE_METHODS.contains(method)) {
-            boolean required = settings.requireEncryptedResponse();
-            if (required && !acceptsJose(request)) {
-                problemWriter.write(request, response, JweErrorCode.RESPONSE_ENCRYPTION_REQUIRED);
-                return;
-            }
-            String envelope = request.getHeader(settings.responseKeyHeader());
-            if (envelope == null || envelope.isBlank()) {
-                if (required) {
-                    problemWriter.write(request, response, JweErrorCode.RESPONSE_KEY_REQUIRED);
-                    return;
-                }
-                // Lenient mode with no JWE-Response-Key header: pass through unencrypted.
-            } else {
-                // A present header means the client opted into encryption, so the envelope is validated
-                // identically in both modes - a bad/oversized envelope yields the same problem either way.
-                responseCek = recoverResponseCek(request, response, envelope);
-                if (responseCek == null) {
-                    return; // a problem response has been written
-                }
-            }
+        ResponseKeyResolution resolution = resolveResponseCek(request, response, method);
+        if (resolution.problemWritten()) {
+            return; // a problem response has been written
         }
-        // Other methods (DELETE/HEAD/OPTIONS/...) pass through without response encryption.
+        SecretKey responseCek = resolution.cek();
 
         if (responseCek == null) {
             filterChain.doFilter(effectiveRequest, response);
@@ -158,6 +140,78 @@ public final class JweServletFilter extends OncePerRequestFilter {
         ContentCachingResponseWrapper caching = new ContentCachingResponseWrapper(response);
         filterChain.doFilter(negotiableRequest, caching);
         writeResponse(caching, response, responseCek);
+    }
+
+    /**
+     * Decrypts the request body for body methods (POST/PUT/PATCH) carrying {@code application/jose},
+     * exposing the plaintext via {@link DecryptedHttpServletRequest}, and enforces encryption otherwise.
+     *
+     * @return the request to forward downstream, or {@link Optional#empty()} when a problem response has
+     * already been written and processing must stop.
+     */
+    private Optional<HttpServletRequest> prepareRequest(HttpServletRequest request, HttpServletResponse response,
+                                                        HttpMethod method) throws IOException {
+        if (!BODY_METHODS.contains(method)) {
+            return Optional.of(request);
+        }
+        if (JweProtocol.isJose(request.getContentType())) {
+            Optional<byte[]> body = readBoundedBody(request, response);
+            if (body.isEmpty()) {
+                return Optional.empty(); // 413 problem already written
+            }
+            return Optional.of(decryptRequest(request, body.get()));
+        }
+        if (settings.requireEncryptedRequest()) {
+            problemWriter.write(request, response, JweErrorCode.REQUEST_ENCRYPTION_REQUIRED);
+            return Optional.empty();
+        }
+        return Optional.of(request);
+    }
+
+    /**
+     * Resolves the response CEK from the {@code JWE-Response-Key} header for response methods (GET and
+     * the body methods), enforcing the encryption contract in strict mode. A present header is validated
+     * identically in both modes - a bad/oversized envelope yields the same problem either way.
+     */
+    private ResponseKeyResolution resolveResponseCek(HttpServletRequest request, HttpServletResponse response,
+                                                     HttpMethod method) throws IOException {
+        // Other methods (DELETE/HEAD/OPTIONS/...) pass through without response encryption.
+        if (!RESPONSE_METHODS.contains(method)) {
+            return ResponseKeyResolution.passThrough();
+        }
+        boolean required = settings.requireEncryptedResponse();
+        if (required && !acceptsJose(request)) {
+            problemWriter.write(request, response, JweErrorCode.RESPONSE_ENCRYPTION_REQUIRED);
+            return ResponseKeyResolution.stop();
+        }
+        String envelope = request.getHeader(settings.responseKeyHeader());
+        if (envelope == null || envelope.isBlank()) {
+            if (required) {
+                problemWriter.write(request, response, JweErrorCode.RESPONSE_KEY_REQUIRED);
+                return ResponseKeyResolution.stop();
+            }
+            return ResponseKeyResolution.passThrough(); // lenient mode with no JWE-Response-Key header
+        }
+        SecretKey cek = recoverResponseCek(request, response, envelope);
+        return cek == null ? ResponseKeyResolution.stop() : ResponseKeyResolution.encryptWith(cek);
+    }
+
+    /**
+     * Outcome of {@link #resolveResponseCek}: {@code problemWritten} stops processing; otherwise
+     * {@code cek} is the response key to encrypt with ({@code null} means pass through unencrypted).
+     */
+    private record ResponseKeyResolution(boolean problemWritten, SecretKey cek) {
+        private static ResponseKeyResolution stop() {
+            return new ResponseKeyResolution(true, null);
+        }
+
+        private static ResponseKeyResolution passThrough() {
+            return new ResponseKeyResolution(false, null);
+        }
+
+        private static ResponseKeyResolution encryptWith(SecretKey cek) {
+            return new ResponseKeyResolution(false, cek);
+        }
     }
 
     /**
@@ -179,16 +233,24 @@ public final class JweServletFilter extends OncePerRequestFilter {
     }
 
     private HttpServletRequest decryptRequest(HttpServletRequest request, byte[] body) {
-        String compactJwe = new String(body, StandardCharsets.US_ASCII).trim();
-        DecryptedJwe decrypted = JweRequestDecryptor.decrypt(compactJwe, keyStore::findByKeyId);
+        long startNanos = System.nanoTime();
+        try {
+            String compactJwe = new String(body, StandardCharsets.US_ASCII).trim();
+            DecryptedJwe decrypted = JweRequestDecryptor.decrypt(compactJwe, keyStore::findByKeyId);
 
-        if (!settings.isAllowedContentType(decrypted.contentType())) {
-            throw new JweProtocolException(JweProtocolException.Reason.INVALID_CONTENT_TYPE,
-                    "JWE 'cty' is missing or not on the content-type allowlist");
+            if (!settings.isAllowedContentType(decrypted.contentType())) {
+                throw new JweProtocolException(JweProtocolException.Reason.INVALID_CONTENT_TYPE,
+                        "JWE 'cty' is missing or not on the content-type allowlist");
+            }
+
+            HttpServletRequest decryptedRequest = new DecryptedHttpServletRequest(
+                    request, decrypted.plaintext(), JweProtocol.normalizeContentType(decrypted.contentType()));
+            metrics.recordDecryption(true, null, Duration.ofNanos(System.nanoTime() - startNanos));
+            return decryptedRequest;
+        } catch (JweProtocolException e) {
+            metrics.recordDecryption(false, e.getReason(), Duration.ofNanos(System.nanoTime() - startNanos));
+            throw e;
         }
-
-        return new DecryptedHttpServletRequest(
-                request, decrypted.plaintext(), JweProtocol.normalizeContentType(decrypted.contentType()));
     }
 
     /**
@@ -228,7 +290,14 @@ public final class JweServletFilter extends OncePerRequestFilter {
         }
 
         String cty = JweProtocol.normalizeContentType(caching.getContentType());
-        String compactJwe = JweResponseEncryptor.encrypt(body, cek, cty != null ? cty : FALLBACK_RESPONSE_CTY);
+        String compactJwe;
+        try {
+            compactJwe = JweResponseEncryptor.encrypt(body, cek, cty != null ? cty : FALLBACK_RESPONSE_CTY);
+        } catch (RuntimeException e) {
+            metrics.recordResponseEncryption(false);
+            throw e;
+        }
+        metrics.recordResponseEncryption(true);
         byte[] out = compactJwe.getBytes(StandardCharsets.US_ASCII);
 
         response.setContentType(JweProtocol.APPLICATION_JOSE_VALUE);

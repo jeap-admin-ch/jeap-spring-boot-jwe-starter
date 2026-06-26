@@ -2,10 +2,12 @@ package ch.admin.bit.jeap.jwe.starter;
 
 import ch.admin.bit.jeap.jwe.crypto.JweRsaKeys;
 import ch.admin.bit.jeap.jwe.keymanagement.JweKeyStore;
+import ch.admin.bit.jeap.jwe.keymanagement.JweMetrics;
 import ch.admin.bit.jeap.jwe.web.*;
 import com.nimbusds.jose.EncryptionMethod;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -99,7 +101,8 @@ public class JweWebAutoConfiguration {
     }
 
     @Bean
-    JweServletFilter jweServletFilter(JweFilterPaths filterPaths, JweKeyStore keyStore) {
+    JweServletFilter jweServletFilter(JweFilterPaths filterPaths, JweKeyStore keyStore,
+                                      ObjectProvider<JweMetrics> metrics) {
         JweProperties.Filter filter = properties.getFilter();
         JweFilterSettings settings = new JweFilterSettings(
                 filter.getContentTypeAllowlist(),
@@ -108,7 +111,7 @@ public class JweWebAutoConfiguration {
                 filter.isRequireEncryptedResponse(),
                 filter.getProblemTypeBaseUri(),
                 filter.getMaxPayloadBytes());
-        return new JweServletFilter(filterPaths, keyStore, settings);
+        return new JweServletFilter(filterPaths, keyStore, settings, metrics.getIfAvailable(() -> JweMetrics.NOOP));
     }
 
     @Bean

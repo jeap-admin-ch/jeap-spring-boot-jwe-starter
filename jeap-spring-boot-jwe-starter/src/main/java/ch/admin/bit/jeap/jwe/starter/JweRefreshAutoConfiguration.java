@@ -3,7 +3,9 @@ package ch.admin.bit.jeap.jwe.starter;
 import ch.admin.bit.jeap.jwe.keymanagement.JweKeyLoader;
 import ch.admin.bit.jeap.jwe.keymanagement.JweKeyRefreshScheduler;
 import ch.admin.bit.jeap.jwe.keymanagement.JweKeyRefresher;
+import ch.admin.bit.jeap.jwe.keymanagement.JweMetrics;
 import ch.admin.bit.jeap.jwe.keymanagement.JweRefreshRetrySettings;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,11 +26,13 @@ public class JweRefreshAutoConfiguration {
     @Bean
     @ConditionalOnBean(JweKeyLoader.class)
     @ConditionalOnProperty(prefix = "jeap.jwe.test", name = "enabled", havingValue = "false", matchIfMissing = true)
-    JweKeyRefresher jweKeyRefresher(JweKeyLoader keyLoader, JweProperties properties) {
+    JweKeyRefresher jweKeyRefresher(JweKeyLoader keyLoader, JweProperties properties,
+                                    ObjectProvider<JweMetrics> metrics) {
         JweProperties.Refresh refresh = properties.getRefresh();
         return new JweKeyRefresher(keyLoader, new JweRefreshRetrySettings(
                 refresh.getInitialBackoff(), refresh.getBackoffMultiplier(),
-                refresh.getMaxBackoff(), refresh.getMaxAttempts()));
+                refresh.getMaxBackoff(), refresh.getMaxAttempts()),
+                metrics.getIfAvailable(() -> JweMetrics.NOOP));
     }
 
     @Bean

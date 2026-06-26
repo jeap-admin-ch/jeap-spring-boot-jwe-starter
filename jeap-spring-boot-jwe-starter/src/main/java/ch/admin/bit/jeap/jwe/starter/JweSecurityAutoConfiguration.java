@@ -82,6 +82,8 @@ public class JweSecurityAutoConfiguration {
     @Bean
     @Order(WELL_KNOWN_SECURITY_ORDER)
     @ConditionalOnMissingBean(name = "jweWellKnownSecurityFilterChain")
+    @SuppressWarnings("java:S4502")
+    // disabling CSRF is safe due to the JWE
     SecurityFilterChain jweWellKnownSecurityFilterChain(HttpSecurity http, JweProperties properties) throws Exception {
         String jwksPath = properties.getJwks().getPath();
         String metadataPath = properties.getMetadata().getPath();

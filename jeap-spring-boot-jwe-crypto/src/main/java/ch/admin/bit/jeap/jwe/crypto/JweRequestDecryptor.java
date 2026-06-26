@@ -70,6 +70,7 @@ public final class JweRequestDecryptor {
         }
 
         try {
+            JweCryptoProvider.ensureInstalled();
             jwe.decrypt(new RSADecrypter(privateKey));
         } catch (JOSEException e) {
             throw new JweProtocolException(JweProtocolException.Reason.DECRYPTION_FAILED, "JWE decryption failed", e);
