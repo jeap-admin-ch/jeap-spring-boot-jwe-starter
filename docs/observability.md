@@ -26,10 +26,11 @@ per-request tags.
 
 | Meter                            | Type                   | Tags                                       | Meaning                                                                                                                                                                           |
 |----------------------------------|------------------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `jeap.jwe.decryption`            | Timer (with histogram) | `result` = `success` / `failure`, `reason` | Inbound request-decryption outcome **and** latency. The `reason` tag carries the failure category (e.g. `unknown_key_id`, `malformed`, `decryption_failed`) or `none` on success. |
+| `jeap.jwe.decryption`            | Timer (with histogram) | `result` = `success` / `failure`, `reason` | Inbound JWE-decryption outcome **and** latency, covering the request body **and** the `JWE-Response-Key` envelope unwrap (itself an RSA decryption). The `reason` tag carries the failure category (e.g. `unknown_key_id`, `malformed`, `decryption_failed`) or `none` on success. |
+| `jeap.jwe.request.rejected`      | Counter                | `reason`                                   | Inbound requests rejected **before** the crypto layer by a size or policy guard — `reason` is `payload_too_large`, `encryption_required`, `response_encryption_required` or `response_key_required`. Complements the decryption meter so client-side encryption failures that never reach decryption stay visible. |
 | `jeap.jwe.response.encryption`   | Counter                | `result` = `success` / `failure`           | Outbound response-encryption outcome (counted only when encryption is actually attempted, i.e. a successful response carrying a body).                                            |
 | `jeap.jwe.key.refresh`           | Counter                | `result` = `success` / `failure`           | Outcome of each periodic Vault key-refresh cycle. A `failure` is recorded when a cycle exhausts its retries and keeps the cached keys.                                            |
-| `jeap.jwe.key.refresh.timestamp` | Gauge (seconds)        | –                                          | Epoch seconds of the last successful refresh; `0` until the first one fires. Useful to alert on staleness.                                                                        |
+| `jeap.jwe.key.refresh.timestamp` | Gauge (seconds)        | –                                          | Epoch seconds of the last successful refresh; seeded at startup from the initial key load, then updated on each periodic refresh. Useful to alert on staleness.                   |
 | `jeap.jwe.keys.active`           | Gauge                  | –                                          | Number of active key versions currently accepted for decryption.                                                                                                                  |
 | `jeap.jwe.keys.current.version`  | Gauge                  | –                                          | Numeric version of the current encryption key (newest active version); `0` when none is loaded.                                                                                   |
 | `jeap.jwe.encryption.active`     | Gauge                  | –                                          | Governance signal, `1` or `0` — see below.                                                                                                                                        |
@@ -56,13 +57,21 @@ following hold, and `0` otherwise:
 If enforcement is relaxed for either direction, or the key store ends up empty, the gauge drops to
 `0` — which is exactly the condition a governance check should alert on.
 
+The gauge is also emitted as `0` when JWE is turned off entirely (`jeap.jwe.enabled=false`): a disabled
+service therefore still reports `jeap_jwe_encryption_active 0` rather than dropping the series, so a
+governance query (`jeap_jwe_encryption_active == 0`) reliably catches it instead of seeing nothing.
+
 ## Example queries
 
 Prometheus (PromQL):
 
 ```promql
-# Decryption failure rate over 5 minutes
+# Decryption failure rate over 5 minutes (request body + response-key envelope unwrap)
 sum(rate(jeap_jwe_decryption_seconds_count{result="failure"}[5m]))
+
+# All client-side encryption failures, including requests rejected before the crypto layer
+sum(rate(jeap_jwe_decryption_seconds_count{result="failure"}[5m]))
+  + sum(rate(jeap_jwe_request_rejected_total[5m]))
 
 # 95th percentile decryption latency
 histogram_quantile(0.95, sum(rate(jeap_jwe_decryption_seconds_bucket[5m])) by (le))

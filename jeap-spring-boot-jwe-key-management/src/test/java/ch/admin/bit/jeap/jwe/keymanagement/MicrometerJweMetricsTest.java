@@ -63,6 +63,25 @@ class MicrometerJweMetricsTest {
     }
 
     @Test
+    void seedsRefreshTimestampFromStartupKeyLoad() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+        store.replaceKeys(List.of(keyV1));
+
+        // Keys are already loaded (startup load) when the metrics are wired -> timestamp seeded at once,
+        // without waiting for the first periodic refresh.
+        new MicrometerJweMetrics(registry, store, true, true);
+
+        assertThat(registry.get("jeap.jwe.key.refresh.timestamp").gauge().value()).isGreaterThan(0.0);
+    }
+
+    @Test
+    void refreshTimestampStaysZeroWhenNoKeysLoadedAtStartup() {
+        new MicrometerJweMetrics(registry, new InMemoryJweKeyStore(), true, true);
+
+        assertThat(registry.get("jeap.jwe.key.refresh.timestamp").gauge().value()).isEqualTo(0.0);
+    }
+
+    @Test
     void recordsDecryptionSuccessWithLatency() {
         MicrometerJweMetrics metrics = metrics();
 
@@ -81,6 +100,20 @@ class MicrometerJweMetricsTest {
 
         assertThat(registry.get("jeap.jwe.decryption")
                 .tag("result", "failure").tag("reason", "unknown_key_id").timer().count()).isEqualTo(1);
+    }
+
+    @Test
+    void recordsRequestRejectionTaggedWithReason() {
+        MicrometerJweMetrics metrics = metrics();
+
+        metrics.recordRequestRejected(JweMetrics.RejectionReason.PAYLOAD_TOO_LARGE);
+        metrics.recordRequestRejected(JweMetrics.RejectionReason.ENCRYPTION_REQUIRED);
+        metrics.recordRequestRejected(JweMetrics.RejectionReason.ENCRYPTION_REQUIRED);
+
+        assertThat(registry.get("jeap.jwe.request.rejected").tag("reason", "payload_too_large").counter().count())
+                .isEqualTo(1.0);
+        assertThat(registry.get("jeap.jwe.request.rejected").tag("reason", "encryption_required").counter().count())
+                .isEqualTo(2.0);
     }
 
     @Test

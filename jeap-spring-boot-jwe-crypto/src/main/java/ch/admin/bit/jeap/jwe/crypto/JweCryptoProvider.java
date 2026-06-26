@@ -39,8 +39,11 @@ public final class JweCryptoProvider {
         } catch (Exception e) {
             // Remove the unhealthy provider so JCA resolution falls back cleanly to the JDK provider.
             Security.removeProvider(AmazonCorrettoCryptoProvider.PROVIDER_NAME);
-            log.error("Native Amazon Corretto Crypto Provider is not available on this platform; "
-                    + "removed it and falling back to the JDK provider. Crypto performance will not be optimized.", e);
+            // Logged at WARN without the stack trace: the JDK fallback is a fully supported path (e.g. on
+            // platforms without a shipped native library), so this is an optimisation notice, not an error.
+            log.warn("Native Amazon Corretto Crypto Provider is not available on this platform ({}); "
+                            + "removed it and falling back to the JDK provider. Crypto performance will not be optimized.",
+                    e.getMessage());
             enabled = false;
         }
         CORRETTO_ENABLED = enabled;

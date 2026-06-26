@@ -7,6 +7,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.micrometer.metrics.autoconfigure.MetricsAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,6 +44,26 @@ class JweMetricsAutoConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context).doesNotHaveBean(JweMetrics.class);
         });
+    }
+
+    @Test
+    void emitsZeroGovernanceGaugeWhenJweDisabled() {
+        new ApplicationContextRunner()
+                // MetricsAutoConfiguration registers the MeterRegistryPostProcessor that binds MeterBinder
+                // beans (the governance gauge) to the registry - the mechanism Spring Boot uses in a real app.
+                .withConfiguration(AutoConfigurations.of(MetricsAutoConfiguration.class,
+                        JweAutoConfiguration.class, JweMetricsAutoConfiguration.class))
+                .withUserConfiguration(MeterRegistryConfig.class)
+                .withPropertyValues("jeap.jwe.enabled=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    // No full metrics (no key store to bind) ...
+                    assertThat(context).doesNotHaveBean(JweMetrics.class);
+                    // ... but the governance gauge is still present and reads 0, so a disabled service
+                    // stays visible to a `jeap_jwe_encryption_active == 0` governance scrape.
+                    MeterRegistry registry = context.getBean(MeterRegistry.class);
+                    assertThat(registry.get("jeap.jwe.encryption.active").gauge().value()).isEqualTo(0.0);
+                });
     }
 
     @Configuration

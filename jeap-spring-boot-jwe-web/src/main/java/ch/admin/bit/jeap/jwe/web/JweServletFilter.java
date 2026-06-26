@@ -162,6 +162,7 @@ public final class JweServletFilter extends OncePerRequestFilter {
             return Optional.of(decryptRequest(request, body.get()));
         }
         if (settings.requireEncryptedRequest()) {
+            metrics.recordRequestRejected(JweMetrics.RejectionReason.ENCRYPTION_REQUIRED);
             problemWriter.write(request, response, JweErrorCode.REQUEST_ENCRYPTION_REQUIRED);
             return Optional.empty();
         }
@@ -181,12 +182,14 @@ public final class JweServletFilter extends OncePerRequestFilter {
         }
         boolean required = settings.requireEncryptedResponse();
         if (required && !acceptsJose(request)) {
+            metrics.recordRequestRejected(JweMetrics.RejectionReason.RESPONSE_ENCRYPTION_REQUIRED);
             problemWriter.write(request, response, JweErrorCode.RESPONSE_ENCRYPTION_REQUIRED);
             return ResponseKeyResolution.stop();
         }
         String envelope = request.getHeader(settings.responseKeyHeader());
         if (envelope == null || envelope.isBlank()) {
             if (required) {
+                metrics.recordRequestRejected(JweMetrics.RejectionReason.RESPONSE_KEY_REQUIRED);
                 problemWriter.write(request, response, JweErrorCode.RESPONSE_KEY_REQUIRED);
                 return ResponseKeyResolution.stop();
             }
@@ -221,11 +224,13 @@ public final class JweServletFilter extends OncePerRequestFilter {
     private Optional<byte[]> readBoundedBody(HttpServletRequest request, HttpServletResponse response) throws IOException {
         long max = settings.maxPayloadBytes();
         if (request.getContentLengthLong() > max) {
+            metrics.recordRequestRejected(JweMetrics.RejectionReason.PAYLOAD_TOO_LARGE);
             problemWriter.write(request, response, JweErrorCode.PAYLOAD_TOO_LARGE);
             return Optional.empty();
         }
         byte[] body = request.getInputStream().readNBytes((int) Math.min(max + 1, Integer.MAX_VALUE));
         if (body.length > max) {
+            metrics.recordRequestRejected(JweMetrics.RejectionReason.PAYLOAD_TOO_LARGE);
             problemWriter.write(request, response, JweErrorCode.PAYLOAD_TOO_LARGE);
             return Optional.empty();
         }
@@ -258,16 +263,23 @@ public final class JweServletFilter extends OncePerRequestFilter {
      * guards in both strict and lenient mode: an oversized envelope yields {@code PAYLOAD_TOO_LARGE}
      * and a malformed/undecryptable one yields {@code RESPONSE_KEY_INVALID}. Returns {@code null} after
      * writing a problem response.
+     *
+     * <p>The envelope unwrap is itself an RSA decryption, so a failed unwrap is recorded on the
+     * decryption meter as a failure (it would otherwise go uncounted), keyed by the same reason tags as
+     * the request-body path.
      */
     private SecretKey recoverResponseCek(HttpServletRequest request, HttpServletResponse response, String envelope)
             throws IOException {
         if (envelope.getBytes(StandardCharsets.US_ASCII).length > settings.maxPayloadBytes()) {
+            metrics.recordRequestRejected(JweMetrics.RejectionReason.PAYLOAD_TOO_LARGE);
             problemWriter.write(request, response, JweErrorCode.PAYLOAD_TOO_LARGE);
             return null;
         }
+        long startNanos = System.nanoTime();
         try {
             return JweResponseEncryptor.recoverResponseCek(envelope.trim(), keyStore::findByKeyId);
         } catch (JweProtocolException e) {
+            metrics.recordDecryption(false, e.getReason(), Duration.ofNanos(System.nanoTime() - startNanos));
             problemWriter.write(request, response, JweErrorCode.RESPONSE_KEY_INVALID);
             return null;
         }

@@ -19,6 +19,9 @@ working with plain JSON and never see any cryptography.
   the [Amazon Corretto Crypto Provider](https://github.com/corretto/amazon-corretto-crypto-provider)
   (ACCP) is installed at top JCA priority to accelerate the RSA-OAEP and AES-GCM operations, with an
   automatic fallback to the JDK provider when the native library is unavailable on the platform.
+  Because a JCA provider is process-global, installing ACCP changes the default provider for **all**
+  cryptography in the host application, not only JWE — this matches `jeap-crypto-core` and is a no-op
+  when that is already present (the install is idempotent).
 
 ## The big picture
 

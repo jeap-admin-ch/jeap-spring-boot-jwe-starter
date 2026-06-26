@@ -27,14 +27,41 @@ public interface JweMetrics {
     };
 
     /**
-     * Records the outcome and latency of an inbound request decryption.
+     * Categories of inbound request rejected <em>before</em> (or independently of) a JWE decryption
+     * attempt - they never reach the crypto layer and so are not reflected in {@link #recordDecryption}.
+     * Counted through {@link #recordRequestRejected(RejectionReason)}.
+     */
+    enum RejectionReason {
+        /** The request body, or the {@code JWE-Response-Key} envelope, exceeded the maximum payload size. */
+        PAYLOAD_TOO_LARGE,
+        /** A body method arrived without the required {@code application/jose} encryption. */
+        ENCRYPTION_REQUIRED,
+        /** An encrypted response was required but the client did not accept {@code application/jose}. */
+        RESPONSE_ENCRYPTION_REQUIRED,
+        /** An encrypted response was required but the {@code JWE-Response-Key} header was absent. */
+        RESPONSE_KEY_REQUIRED
+    }
+
+    /**
+     * Records the outcome and latency of an inbound JWE decryption. Covers both the request-body
+     * decryption and the {@code JWE-Response-Key} envelope unwrap (itself an RSA decryption); a failed
+     * envelope unwrap is recorded here as a failure rather than going uncounted.
      *
-     * @param success {@code true} if the request was decrypted and accepted, {@code false} on a
-     *                protocol failure
+     * @param success {@code true} if the JWE was decrypted and accepted, {@code false} on a protocol
+     *                failure
      * @param reason  the failure category when {@code success} is {@code false}; {@code null} on success
      * @param elapsed the wall-clock time spent attempting the decryption
      */
     default void recordDecryption(boolean success, JweProtocolException.Reason reason, Duration elapsed) {
+        // no-op
+    }
+
+    /**
+     * Records an inbound request rejected before reaching (or independently of) the crypto layer - an
+     * oversized payload or a missing-encryption policy violation. These are not decryption attempts, so
+     * they are counted separately from {@link #recordDecryption} rather than skewing its latency series.
+     */
+    default void recordRequestRejected(RejectionReason reason) {
         // no-op
     }
 

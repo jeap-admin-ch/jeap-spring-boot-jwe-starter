@@ -32,16 +32,8 @@ public class JweKeyRefresher {
     private final JweMetrics metrics;
     private final Sleeper sleeper;
 
-    public JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry) {
-        this(keyLoader, retry, JweMetrics.NOOP);
-    }
-
     public JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry, JweMetrics metrics) {
         this(keyLoader, retry, metrics, Thread::sleep);
-    }
-
-    JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry, Sleeper sleeper) {
-        this(keyLoader, retry, JweMetrics.NOOP, sleeper);
     }
 
     JweKeyRefresher(JweKeyLoader keyLoader, JweRefreshRetrySettings retry, JweMetrics metrics, Sleeper sleeper) {

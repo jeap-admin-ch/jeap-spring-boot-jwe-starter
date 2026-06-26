@@ -95,6 +95,45 @@ class JweMetricsIT {
     }
 
     @Test
+    void unencryptedRequestIsCountedAsRejectedNotDecryptionFailure() {
+        double before = rejectionCount("encryption_required");
+
+        // A plain (unencrypted) body on an enforced endpoint is rejected before the crypto layer.
+        try {
+            client().post().uri("/api/echo")
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/jose")
+                    .body("{\"hello\":\"world\"}")
+                    .retrieve().toBodilessEntity();
+        } catch (RuntimeException expected) {
+            // 415 problem+json
+        }
+
+        assertThat(rejectionCount("encryption_required")).isEqualTo(before + 1);
+    }
+
+    @Test
+    void invalidResponseKeyEnvelopeIsCountedAsDecryptionFailure() throws Exception {
+        double before = decryptionCount("failure", "malformed");
+
+        RSAKey publicKey = currentPublicKey();
+        // A valid encrypted body but a garbage JWE-Response-Key envelope: the unwrap (an RSA decryption)
+        // fails and is counted on the decryption meter rather than going uncounted.
+        try {
+            client().post().uri("/api/echo")
+                    .header("Content-Type", "application/jose")
+                    .header("Accept", "application/jose")
+                    .header("JWE-Response-Key", "not-a-jwe")
+                    .body(encryptRequest(publicKey, "{\"hello\":\"world\"}").getBytes(US_ASCII))
+                    .retrieve().toBodilessEntity();
+        } catch (RuntimeException expected) {
+            // 400 problem+json
+        }
+
+        assertThat(decryptionCount("failure", "malformed")).isEqualTo(before + 1);
+    }
+
+    @Test
     void metricsAreExportedOnThePrometheusScrapeEndpoint() {
         String scrape = client().get().uri("/actuator/prometheus").retrieve().body(String.class);
         assertThat(scrape)
@@ -106,6 +145,11 @@ class JweMetricsIT {
     private double decryptionCount(String result, String reason) {
         var timer = meterRegistry.find("jeap.jwe.decryption").tag("result", result).tag("reason", reason).timer();
         return timer == null ? 0.0 : timer.count();
+    }
+
+    private double rejectionCount(String reason) {
+        var counter = meterRegistry.find("jeap.jwe.request.rejected").tag("reason", reason).counter();
+        return counter == null ? 0.0 : counter.count();
     }
 
     private RestClient client() {

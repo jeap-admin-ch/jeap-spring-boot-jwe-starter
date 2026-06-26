@@ -84,7 +84,7 @@ class JweKeyRefresherTest {
     }
 
     private JweKeyRefresher refresher(InMemoryJweKeyStore store, JweKeySource source) {
-        return new JweKeyRefresher(new JweKeyLoader(store, source), settings, recordingSleeper);
+        return new JweKeyRefresher(new JweKeyLoader(store, source), settings, JweMetrics.NOOP, recordingSleeper);
     }
 
     /**
