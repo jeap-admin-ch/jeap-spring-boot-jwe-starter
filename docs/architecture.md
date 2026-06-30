@@ -111,9 +111,6 @@ flowchart BT
 | `…-jwe-test` | Shared 4096-bit RSA test keys (`JweTestKeys`), test scope only. |
 | `…-jwe-security-it` | Integration tests proving coexistence with `jeap-spring-boot-security-starter`. |
 
-See [README](../README.md) for the module table and the [AGENTS.md](../AGENTS.md) for the
-detailed layout.
-
 ## Key management & the KMS
 
 Vault's transit secret engine is the KMS of record; the service keeps a working copy of the
