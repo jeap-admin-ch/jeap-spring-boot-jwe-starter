@@ -4,6 +4,7 @@ import ch.admin.bit.jeap.jwe.keymanagement.JweMetrics;
 import ch.admin.bit.jeap.jwe.keymanagement.MicrometerJweMetrics;
 import ch.admin.bit.jeap.jwe.test.JweTestKeys;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -34,8 +35,43 @@ class JweMetricsAutoConfigurationTest {
         runner.withUserConfiguration(MeterRegistryConfig.class).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(JweMetrics.class);
-            assertThat(context.getBean(JweMetrics.class)).isInstanceOf(MicrometerJweMetrics.class);
+            assertThat(context.getBean(JweMetrics.class))
+                    .isInstanceOf(MicrometerJweMetrics.class)
+                    .isInstanceOf(MeterBinder.class);
         });
+    }
+
+    /**
+     * Regression test for the PrometheusMeterRegistry "MeterFilter is being configured after a Meter has
+     * been registered" warning: meters must be registered exclusively through the {@link MeterBinder}
+     * mechanism (applied by Spring Boot after all MeterFilters), never at bean construction. Also guards
+     * against the {@code jweMetrics} bean method declaring {@link JweMetrics} as its return type - the
+     * binder is collected by the declared type, so the meters would silently stop being registered.
+     */
+    @Test
+    void metersAreRegisteredOnlyViaTheMeterBinderMechanism() {
+        // Without MetricsAutoConfiguration nothing applies MeterBinders: creating the bean must not
+        // register any meters.
+        runner.withUserConfiguration(MeterRegistryConfig.class).run(context -> {
+            assertThat(context).hasSingleBean(JweMetrics.class);
+            MeterRegistry registry = context.getBean(MeterRegistry.class);
+            assertThat(registry.getMeters()).isEmpty();
+        });
+
+        // With MetricsAutoConfiguration, Spring Boot binds the bean and the meters appear.
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(MetricsAutoConfiguration.class,
+                        JweAutoConfiguration.class, JweMetricsAutoConfiguration.class))
+                .withUserConfiguration(MeterRegistryConfig.class)
+                .withPropertyValues(STATIC_MODE)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    MeterRegistry registry = context.getBean(MeterRegistry.class);
+                    assertThat(registry.get("jeap.jwe.keys.active").gauge().value()).isEqualTo(1.0);
+                    assertThat(registry.get("jeap.jwe.encryption.active").gauge()).isNotNull();
+                    assertThat(registry.get("jeap.jwe.response.encryption").counters()).isNotEmpty();
+                    assertThat(registry.get("jeap.jwe.key.refresh").counters()).isNotEmpty();
+                });
     }
 
     @Test

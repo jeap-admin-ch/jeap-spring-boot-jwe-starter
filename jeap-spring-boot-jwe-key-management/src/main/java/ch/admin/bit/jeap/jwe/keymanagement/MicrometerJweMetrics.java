@@ -6,17 +6,25 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.binder.MeterBinder;
 
 import java.time.Duration;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Micrometer-backed {@link JweMetrics}. Registers the JWE meters under the {@code jeap.jwe.*} prefix
  * against the application's {@link MeterRegistry}, so they are exported through whatever registry the
  * service configures (Prometheus, OpenTelemetry, ...).
+ *
+ * <p>Registration happens in {@link #bindTo(MeterRegistry)}, not at construction: Spring Boot applies
+ * {@link MeterBinder} beans only after all {@code MeterFilter}s have been configured, whereas this bean
+ * is created during servlet web-server initialization (pulled in by the JWE servlet filter), long before
+ * that. Record calls before binding are safe no-ops - only the refresh timestamp is tracked, so a
+ * pre-bind refresh still shows in the timestamp gauge once bound.
  *
  * <p>Meters (Prometheus names in parentheses):
  * <ul>
@@ -45,7 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>All tags are enum- or boolean-bounded; no per-request or per-path tags are emitted, keeping the
  * cardinality low.
  */
-public class MicrometerJweMetrics implements JweMetrics {
+public class MicrometerJweMetrics implements JweMetrics, MeterBinder {
 
     private static final String METRIC_DECRYPTION = "jeap.jwe.decryption";
     private static final String METRIC_REQUEST_REJECTED = "jeap.jwe.request.rejected";
@@ -58,21 +66,29 @@ public class MicrometerJweMetrics implements JweMetrics {
     private static final String REASON = "reason";
     private static final String NONE = "none";
 
-    private final MeterRegistry registry;
+    // Set by bindTo, published last: a non-null registry implies the counters below are initialized.
+    // The first bound registry keeps receiving the lazily created per-request meters.
+    private final AtomicReference<MeterRegistry> registry = new AtomicReference<>();
+    private final JweKeyStore keyStore;
+    private final boolean enforced;
     private final AtomicLong lastRefreshSuccessEpochSeconds = new AtomicLong(0);
     // Meters are cached and registered once, not rebuilt on every record() call. The decryption timers
     // are keyed by their result/reason tag combination (bounded by the JweProtocolException reasons).
     private final ConcurrentMap<String, Timer> decryptionTimers = new ConcurrentHashMap<>();
     // Request-rejection counters, keyed by reason (bounded by the RejectionReason enum).
     private final ConcurrentMap<RejectionReason, Counter> rejectionCounters = new ConcurrentHashMap<>();
-    private final Counter responseEncryptionSuccess;
-    private final Counter responseEncryptionFailure;
-    private final Counter refreshSuccess;
-    private final Counter refreshFailure;
+    private Counter responseEncryptionSuccess;
+    private Counter responseEncryptionFailure;
+    private Counter refreshSuccess;
+    private Counter refreshFailure;
 
-    public MicrometerJweMetrics(MeterRegistry registry, JweKeyStore keyStore,
+    public MicrometerJweMetrics(JweKeyStore keyStore,
                                 boolean requireEncryptedRequest, boolean requireEncryptedResponse) {
-        this.registry = registry;
+        this.keyStore = keyStore;
+        // Governance signal: end-to-end encryption is only "active" when enforcement is on for both
+        // directions and at least one key is loaded. Captures the enforcement flags once (they are
+        // fixed for the lifetime of the context); key availability is read live by the gauge.
+        this.enforced = requireEncryptedRequest && requireEncryptedResponse;
 
         // The startup key load runs (and fails fast) before this bean is created, so a present key means
         // the keys are fresh as of startup. Seed the last-success timestamp accordingly; otherwise the
@@ -81,37 +97,42 @@ public class MicrometerJweMetrics implements JweMetrics {
         if (keyStore.currentEncryptionKey().isPresent()) {
             lastRefreshSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
         }
+    }
 
-        this.responseEncryptionSuccess = responseEncryptionCounter(SUCCESS);
-        this.responseEncryptionFailure = responseEncryptionCounter(FAILURE);
-        this.refreshSuccess = refreshCounter(SUCCESS);
-        this.refreshFailure = refreshCounter(FAILURE);
+    @Override
+    public void bindTo(MeterRegistry meterRegistry) {
+        this.responseEncryptionSuccess = responseEncryptionCounter(meterRegistry, SUCCESS);
+        this.responseEncryptionFailure = responseEncryptionCounter(meterRegistry, FAILURE);
+        this.refreshSuccess = refreshCounter(meterRegistry, SUCCESS);
+        this.refreshFailure = refreshCounter(meterRegistry, FAILURE);
 
         Gauge.builder("jeap.jwe.keys.active", keyStore, store -> store.activeKeys().size())
                 .description("Number of active JWE key versions accepted for decryption")
-                .register(registry);
+                .register(meterRegistry);
 
         Gauge.builder("jeap.jwe.keys.current.version", keyStore, MicrometerJweMetrics::currentKeyVersion)
                 .description("Version of the current JWE encryption key (newest active version), 0 if none")
-                .register(registry);
+                .register(meterRegistry);
 
         Gauge.builder("jeap.jwe.key.refresh.timestamp", lastRefreshSuccessEpochSeconds, AtomicLong::get)
                 .description("Epoch seconds of the last successful Vault key refresh; seeded from the startup key load")
                 .baseUnit("seconds")
-                .register(registry);
+                .register(meterRegistry);
 
-        // Governance signal: end-to-end encryption is only "active" when enforcement is on for both
-        // directions and at least one key is loaded. Captures the enforcement flags once (they are
-        // fixed for the lifetime of the context) and reads key availability live.
-        boolean enforced = requireEncryptedRequest && requireEncryptedResponse;
         Gauge.builder("jeap.jwe.encryption.active", keyStore,
                         store -> enforced && store.currentEncryptionKey().isPresent() ? 1.0 : 0.0)
                 .description("1 if JWE end-to-end encryption is enforced (request+response) and keyed, else 0")
-                .register(registry);
+                .register(meterRegistry);
+
+        this.registry.compareAndSet(null, meterRegistry);
     }
 
     @Override
     public void recordDecryption(boolean success, JweProtocolException.Reason reason, Duration elapsed) {
+        MeterRegistry meterRegistry = registry.get();
+        if (meterRegistry == null) {
+            return;
+        }
         String resultTag = success ? SUCCESS : FAILURE;
         String reasonTag = success || reason == null ? NONE : reason.name().toLowerCase(Locale.ROOT);
         decryptionTimers.computeIfAbsent(resultTag + '/' + reasonTag,
@@ -120,47 +141,56 @@ public class MicrometerJweMetrics implements JweMetrics {
                                 .tag(RESULT, resultTag)
                                 .tag(REASON, reasonTag)
                                 .publishPercentileHistogram()
-                                .register(registry))
+                                .register(meterRegistry))
                 .record(elapsed);
     }
 
     @Override
     public void recordRequestRejected(RejectionReason reason) {
+        MeterRegistry meterRegistry = registry.get();
+        if (meterRegistry == null) {
+            return;
+        }
         rejectionCounters.computeIfAbsent(reason,
                         r -> Counter.builder(METRIC_REQUEST_REJECTED)
                                 .description("Inbound JWE request rejected before the crypto layer (size or policy guard)")
                                 .tag(REASON, r.name().toLowerCase(Locale.ROOT))
-                                .register(registry))
+                                .register(meterRegistry))
                 .increment();
     }
 
     @Override
     public void recordResponseEncryption(boolean success) {
+        if (registry.get() == null) {
+            return;
+        }
         (success ? responseEncryptionSuccess : responseEncryptionFailure).increment();
     }
 
     @Override
     public void recordRefresh(boolean success) {
+        // The timestamp is tracked even before binding so the gauge reflects a pre-bind refresh.
         if (success) {
             lastRefreshSuccessEpochSeconds.set(System.currentTimeMillis() / 1000L);
-            refreshSuccess.increment();
-        } else {
-            refreshFailure.increment();
         }
+        if (registry.get() == null) {
+            return;
+        }
+        (success ? refreshSuccess : refreshFailure).increment();
     }
 
-    private Counter responseEncryptionCounter(String result) {
+    private Counter responseEncryptionCounter(MeterRegistry meterRegistry, String result) {
         return Counter.builder(METRIC_RESPONSE_ENCRYPTION)
                 .description("JWE response encryption outcome")
                 .tag(RESULT, result)
-                .register(registry);
+                .register(meterRegistry);
     }
 
-    private Counter refreshCounter(String result) {
+    private Counter refreshCounter(MeterRegistry meterRegistry, String result) {
         return Counter.builder(METRIC_KEY_REFRESH)
                 .description("Vault JWE key refresh outcome")
                 .tag(RESULT, result)
-                .register(registry);
+                .register(meterRegistry);
     }
 
     /**

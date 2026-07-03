@@ -29,7 +29,7 @@ class MicrometerJweMetricsTest {
     void keyGaugesReflectTheLiveStoreSnapshot() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(keyV1, keyV2));
-        new MicrometerJweMetrics(registry, store, true, true);
+        new MicrometerJweMetrics(store, true, true).bindTo(registry);
 
         assertThat(registry.get("jeap.jwe.keys.active").gauge().value()).isEqualTo(2.0);
         assertThat(registry.get("jeap.jwe.keys.current.version").gauge().value()).isEqualTo(2.0);
@@ -44,7 +44,7 @@ class MicrometerJweMetricsTest {
     void encryptionActiveIsOneOnlyWhenEnforcedAndKeyed() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(keyV1));
-        new MicrometerJweMetrics(registry, store, true, true);
+        new MicrometerJweMetrics(store, true, true).bindTo(registry);
 
         assertThat(registry.get("jeap.jwe.encryption.active").gauge().value()).isEqualTo(1.0);
 
@@ -57,7 +57,7 @@ class MicrometerJweMetricsTest {
     void encryptionActiveIsZeroWhenEnforcementIsRelaxed() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(keyV1));
-        new MicrometerJweMetrics(registry, store, true, false);
+        new MicrometerJweMetrics(store, true, false).bindTo(registry);
 
         assertThat(registry.get("jeap.jwe.encryption.active").gauge().value()).isEqualTo(0.0);
     }
@@ -69,14 +69,14 @@ class MicrometerJweMetricsTest {
 
         // Keys are already loaded (startup load) when the metrics are wired -> timestamp seeded at once,
         // without waiting for the first periodic refresh.
-        new MicrometerJweMetrics(registry, store, true, true);
+        new MicrometerJweMetrics(store, true, true).bindTo(registry);
 
         assertThat(registry.get("jeap.jwe.key.refresh.timestamp").gauge().value()).isGreaterThan(0.0);
     }
 
     @Test
     void refreshTimestampStaysZeroWhenNoKeysLoadedAtStartup() {
-        new MicrometerJweMetrics(registry, new InMemoryJweKeyStore(), true, true);
+        new MicrometerJweMetrics(new InMemoryJweKeyStore(), true, true).bindTo(registry);
 
         assertThat(registry.get("jeap.jwe.key.refresh.timestamp").gauge().value()).isEqualTo(0.0);
     }
@@ -132,9 +132,47 @@ class MicrometerJweMetricsTest {
         assertThat(registry.get("jeap.jwe.key.refresh.timestamp").gauge().value()).isGreaterThan(0.0);
     }
 
+    @Test
+    void constructorRegistersNoMeters() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+        store.replaceKeys(List.of(keyV1));
+
+        // Meters must only be registered through bindTo (invoked by Spring Boot after all MeterFilters
+        // are configured), never at construction - the bean is created during web-server initialization.
+        new MicrometerJweMetrics(store, true, true);
+
+        assertThat(registry.getMeters()).isEmpty();
+    }
+
+    @Test
+    void recordBeforeBindToIsANoOpAndBindingCatchesUpOnTheRefreshTimestamp() {
+        InMemoryJweKeyStore store = new InMemoryJweKeyStore();
+        store.replaceKeys(List.of(keyV1));
+        MicrometerJweMetrics metrics = new MicrometerJweMetrics(store, true, true);
+
+        metrics.recordDecryption(true, null, Duration.ofMillis(1));
+        metrics.recordRequestRejected(JweMetrics.RejectionReason.PAYLOAD_TOO_LARGE);
+        metrics.recordResponseEncryption(true);
+        metrics.recordRefresh(true);
+
+        assertThat(registry.getMeters()).isEmpty();
+
+        metrics.bindTo(registry);
+
+        // Pre-bind counts are lost, but a pre-bind successful refresh is reflected by the timestamp gauge.
+        assertThat(registry.get("jeap.jwe.key.refresh").tag("result", "success").counter().count()).isZero();
+        assertThat(registry.get("jeap.jwe.key.refresh.timestamp").gauge().value()).isGreaterThan(0.0);
+
+        metrics.recordResponseEncryption(true);
+        assertThat(registry.get("jeap.jwe.response.encryption").tag("result", "success").counter().count())
+                .isEqualTo(1.0);
+    }
+
     private MicrometerJweMetrics metrics() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(keyV1));
-        return new MicrometerJweMetrics(registry, store, true, true);
+        MicrometerJweMetrics micrometerJweMetrics = new MicrometerJweMetrics(store, true, true);
+        micrometerJweMetrics.bindTo(registry);
+        return micrometerJweMetrics;
     }
 }

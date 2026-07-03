@@ -23,6 +23,12 @@ import org.springframework.context.annotation.Bean;
  * bean ({@link ConditionalOnBean}). When absent, no metrics bean is created and the filter, refresher
  * and key store fall back to {@link JweMetrics#NOOP} - no metrics, no behavioural change.
  *
+ * <p>{@link MicrometerJweMetrics} is contributed as a {@link MeterBinder}, so Spring Boot registers its
+ * meters only after all {@code MeterFilter}s have been applied. Registering them earlier (the bean is
+ * created during servlet web-server initialization, pulled in by the JWE servlet filter) would trigger
+ * the PrometheusMeterRegistry "MeterFilter is being configured after a Meter has been registered"
+ * warning.
+ *
  * <p>Ordered after {@link JweAutoConfiguration} (it needs the {@link JweKeyStore}) and after Spring
  * Boot's meter-registry auto-configurations so the {@link ConditionalOnBean} check sees the registry
  * (both the Spring Boot 4 {@code o.s.b.micrometer.metrics.autoconfigure.*} and the Spring Boot 3
@@ -48,13 +54,17 @@ public class JweMetricsAutoConfiguration {
     private static final String ENCRYPTION_ACTIVE_DESCRIPTION =
             "1 if JWE end-to-end encryption is enforced (request+response) and keyed, else 0";
 
+    // The declared return type must be the concrete class: Spring Boot's MeterRegistryPostProcessor
+    // collects binders by the bean definition's declared type, and only the concrete type exposes both
+    // the JweMetrics view (injected by the web and refresh configurations) and the MeterBinder view
+    // (through which the meters get registered). With JweMetrics as return type, bindTo would never run.
     @Bean
     @ConditionalOnMissingBean(JweMetrics.class)
     @ConditionalOnBean({MeterRegistry.class, JweKeyStore.class})
     @ConditionalOnProperty(prefix = "jeap.jwe", name = "enabled", havingValue = "true", matchIfMissing = true)
-    JweMetrics jweMetrics(MeterRegistry meterRegistry, JweKeyStore keyStore, JweProperties properties) {
+    MicrometerJweMetrics jweMetrics(JweKeyStore keyStore, JweProperties properties) {
         JweProperties.Filter filter = properties.getFilter();
-        return new MicrometerJweMetrics(meterRegistry, keyStore,
+        return new MicrometerJweMetrics(keyStore,
                 filter.isRequireEncryptedRequest(), filter.isRequireEncryptedResponse());
     }
 

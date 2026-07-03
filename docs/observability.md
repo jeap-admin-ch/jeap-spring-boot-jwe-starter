@@ -91,3 +91,9 @@ Micrometer-aware implementation, `MicrometerJweMetrics`, is contributed by
 `JweMetricsAutoConfiguration` in the starter, gated on a `MeterRegistry` being present. The servlet
 filter and the key refresher receive the metrics through an `ObjectProvider`, falling back to the
 no-op when metrics are not configured — so the crypto module stays free of any Micrometer dependency.
+
+`MicrometerJweMetrics` is contributed as a Micrometer `MeterBinder`: Spring Boot registers its meters
+only after all `MeterFilter`s have been applied. The bean itself is created much earlier — during
+servlet web-server initialization, pulled in by the JWE servlet filter registration — and registering
+the meters at that point would trigger the `PrometheusMeterRegistry` warning "A MeterFilter is being
+configured after a Meter has been registered" on every application start.
