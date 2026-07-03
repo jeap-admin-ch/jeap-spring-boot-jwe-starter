@@ -168,6 +168,21 @@ class MicrometerJweMetricsTest {
                 .isEqualTo(1.0);
     }
 
+    @Test
+    void bindToIsFirstWinsSoAllMetersLiveInOneRegistry() {
+        MicrometerJweMetrics metrics = metrics();
+
+        SimpleMeterRegistry secondRegistry = new SimpleMeterRegistry();
+        metrics.bindTo(secondRegistry);
+        metrics.recordResponseEncryption(true);
+        metrics.recordDecryption(true, null, Duration.ofMillis(1));
+
+        assertThat(secondRegistry.getMeters()).isEmpty();
+        assertThat(registry.get("jeap.jwe.response.encryption").tag("result", "success").counter().count())
+                .isEqualTo(1.0);
+        assertThat(registry.get("jeap.jwe.decryption").tag("result", "success").timer().count()).isEqualTo(1);
+    }
+
     private MicrometerJweMetrics metrics() {
         InMemoryJweKeyStore store = new InMemoryJweKeyStore();
         store.replaceKeys(List.of(keyV1));

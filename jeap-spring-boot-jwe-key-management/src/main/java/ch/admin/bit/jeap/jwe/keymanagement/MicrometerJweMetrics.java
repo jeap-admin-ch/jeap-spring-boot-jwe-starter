@@ -66,8 +66,9 @@ public class MicrometerJweMetrics implements JweMetrics, MeterBinder {
     private static final String REASON = "reason";
     private static final String NONE = "none";
 
-    // Set by bindTo, published last: a non-null registry implies the counters below are initialized.
-    // The first bound registry keeps receiving the lazily created per-request meters.
+    // Set once by the first bindTo call and published last: a non-null registry implies the counters
+    // below are initialized. All meters - eager and lazily created per-request ones - live in this
+    // single registry; further bindTo calls are ignored.
     private final AtomicReference<MeterRegistry> registry = new AtomicReference<>();
     private final JweKeyStore keyStore;
     private final boolean enforced;
@@ -99,8 +100,17 @@ public class MicrometerJweMetrics implements JweMetrics, MeterBinder {
         }
     }
 
+    /**
+     * Binds all meters at most once: the instance holds stateful counters, so binding to a second
+     * registry would split the meters across registries. In a Spring Boot application the binder is
+     * applied to the (single) auto-configured composite registry anyway.
+     */
     @Override
-    public void bindTo(MeterRegistry meterRegistry) {
+    public synchronized void bindTo(MeterRegistry meterRegistry) {
+        if (registry.get() != null) {
+            return;
+        }
+
         this.responseEncryptionSuccess = responseEncryptionCounter(meterRegistry, SUCCESS);
         this.responseEncryptionFailure = responseEncryptionCounter(meterRegistry, FAILURE);
         this.refreshSuccess = refreshCounter(meterRegistry, SUCCESS);
@@ -124,7 +134,7 @@ public class MicrometerJweMetrics implements JweMetrics, MeterBinder {
                 .description("1 if JWE end-to-end encryption is enforced (request+response) and keyed, else 0")
                 .register(meterRegistry);
 
-        this.registry.compareAndSet(null, meterRegistry);
+        this.registry.set(meterRegistry);
     }
 
     @Override
