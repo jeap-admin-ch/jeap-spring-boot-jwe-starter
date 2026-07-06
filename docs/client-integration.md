@@ -4,7 +4,8 @@ This page describes the client side of the JWE protocol — what a frontend (or 
 do to talk to a service secured by the [servlet filter](servlet-filter.md).
 
 > **Angular?** Don't implement this by hand. Use the official client library
-> **[jeap-jwe-client](https://github.com/jeap-admin-ch/jeap-jwe-client)** — an npm module that
+> **[jeap-jwe-client](https://jeap-admin-ch.github.io/docs/building-blocks/libraries/jeap-jwe-client/)**
+> ([source](https://github.com/jeap-admin-ch/jeap-jwe-client)) — an npm module that
 > provides an Angular `HttpInterceptor` integrating directly with `jeap-spring-boot-jwe-starter`.
 > It transparently fetches the JWKS, encrypts outgoing requests, attaches the response-key envelope
 > and decrypts responses, so your application code keeps working with plain JSON. The rest
@@ -141,8 +142,8 @@ re-fetch the JWKS and retry.
 
 ## Implementing your own client
 
-- **Angular:** use [jeap-jwe-client](https://github.com/jeap-admin-ch/jeap-jwe-client) (Angular
-  `HttpInterceptor`, built on the `jose` library) — no manual wiring needed.
+- **Angular:** use [jeap-jwe-client](https://jeap-admin-ch.github.io/docs/building-blocks/libraries/jeap-jwe-client/)
+  (Angular `HttpInterceptor`, built on the `jose` library) — no manual wiring needed.
 - **Other JavaScript/TypeScript:** use [`jose`](https://github.com/panva/jose) (`CompactEncrypt`,
   `compactDecrypt`, `importJWK`) and follow the flows above.
 - **Browser without a library:** the Web Crypto API (`SubtleCrypto`) supports RSA-OAEP (SHA-256) and
@@ -150,8 +151,10 @@ re-fetch the JWKS and retry.
 
 ## Related
 
-- [jeap-jwe-client (Angular interceptor)](https://github.com/jeap-admin-ch/jeap-jwe-client)
+- [jeap-jwe-client (Angular interceptor)](https://jeap-admin-ch.github.io/docs/building-blocks/libraries/jeap-jwe-client/)
 - [Servlet filter](servlet-filter.md)
 - [JWKS endpoint](jwks-endpoint.md)
 - [Configuration reference](configuration.md)
+- [Security considerations](security-considerations.md)
+- [Troubleshooting](troubleshooting.md)
 - [Testing without Vault](testing.md)

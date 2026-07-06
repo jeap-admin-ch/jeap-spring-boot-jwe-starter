@@ -65,9 +65,14 @@ are never accepted.
 - Key material is never logged. Log messages include only the `kid` identifiers.
 - The `toString()` output of `JweProperties.Test` redacts key content.
 
+These invariants, together with the protocol-level properties (IV uniqueness, CEK lifetime) and
+the key-rotation recommendations, are consolidated in
+[Security considerations](security-considerations.md).
+
 ## Related
 
 - [Configuration reference](configuration.md)
+- [Security considerations](security-considerations.md)
 - [Vault integration](vault-integration.md)
 - [JWKS endpoint](jwks-endpoint.md)
 - [Servlet filter](servlet-filter.md)

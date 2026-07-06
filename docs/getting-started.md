@@ -80,7 +80,12 @@ always excluded. See [Servlet filter](servlet-filter.md) for the path model and 
 [Configuration reference](configuration.md) for every property, and
 [Client integration](client-integration.md) for the client side.
 
-## With jeap-security
+## Integrating with jEAP
+
+The starter is designed to drop into a standard jEAP service and compose with the other jEAP
+starters. The typical integration points:
+
+### With jeap-security
 
 Most jEAP services also run `jeap-spring-boot-security-starter`. The two work together — Spring
 Security authenticates first (filter order `-100`), then the JWE filter decrypts (order `0`).
@@ -94,10 +99,42 @@ application's own chain). No manual `permitAll` rule is needed. Opt out with
 
 See [Using with jeap-security](servlet-filter.md#using-with-jeap-security) for the details.
 
+### Vault path convention
+
+The transit secret-engine path follows the jEAP convention `transit/<jeap.vault.system-name>`:
+when `jeap.vault.system-name` is set (as in services using the jEAP Vault integration), the
+starter derives the path automatically and only `jeap.jwe.vault.transit-key-name` needs to be
+configured. Without it, set `jeap.jwe.vault.secret-engine-path` explicitly
+(see [Vault integration](vault-integration.md#secret-engine-path)).
+
+### Metrics and governance
+
+Add `jeap-spring-boot-monitoring-starter` and the JWE metrics activate automatically — including
+the `jeap.jwe.encryption.active` gauge a Governance service scrapes to verify that end-to-end
+encryption is genuinely enforced. Without a Micrometer `MeterRegistry` the starter runs
+metrics-free. See [Observability (metrics)](observability.md).
+
+### jEAP Server-Sent Events
+
+The jEAP SSE endpoint (`jeap.sse.web.endpoint`, default `/ui-api/sse/events`) is excluded from
+encryption by default — streaming responses cannot be encrypted by the filter, and jEAP SSE
+carries only event IDs. Expose any other streaming/async endpoints on excluded paths too
+(see [Servlet filter](servlet-filter.md#path-matching-includes-then-excludes)).
+
+### Angular frontends: jeap-jwe-client
+
+For Angular applications, use the companion library
+**[jeap-jwe-client](https://jeap-admin-ch.github.io/docs/building-blocks/libraries/jeap-jwe-client/)** —
+an npm module providing an `HttpInterceptor` that discovers this starter's JWKS and protocol
+metadata, transparently encrypts requests and decrypts responses, and handles key rotation. Other
+clients implement the documented protocol directly (see [Client integration](client-integration.md)).
+
 ## Related
 
 - [Configuration reference](configuration.md)
 - [Servlet filter](servlet-filter.md)
 - [Client integration](client-integration.md)
 - [Vault integration](vault-integration.md)
+- [Security considerations](security-considerations.md)
+- [Troubleshooting](troubleshooting.md)
 - [Testing without Vault](testing.md)

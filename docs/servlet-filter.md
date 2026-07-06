@@ -86,6 +86,9 @@ plaintext payloads.
   refresh their JWKS). `kid`s are already public via the JWKS endpoint, so this exposes nothing
   secret.
 
+The full security picture — IV uniqueness, CEK lifetime, key handling, rotation
+recommendations — is consolidated in [Security considerations](security-considerations.md).
+
 ## Registration
 
 The filter is registered via a `FilterRegistrationBean` if the starter is not explicitly disabled (
@@ -217,3 +220,5 @@ configuration and contains no security-sensitive material.
 - [Configuration reference](configuration.md)
 - [JWKS endpoint](jwks-endpoint.md)
 - [Key management](key-management.md)
+- [Security considerations](security-considerations.md)
+- [Troubleshooting](troubleshooting.md)

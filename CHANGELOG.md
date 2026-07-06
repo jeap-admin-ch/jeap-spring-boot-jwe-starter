@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-07-06
+
+### Changed
+
+- Docs: add a troubleshooting guide and a consolidated security-considerations page (IV uniqueness,
+  CEK lifetime, key-rotation recommendations)
+- Docs: add a Vault key-rotation sequence diagram and extend getting-started with a jEAP integration guide
+- Docs: link the jeap-jwe-client library via its jEAP docs page
+
 ## [1.2.1] - 2026-07-03
 
 ### Fixed

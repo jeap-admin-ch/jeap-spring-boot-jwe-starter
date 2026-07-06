@@ -273,4 +273,7 @@ end by the `jeap-spring-boot-jwe-security-it` module. See
 | Understand key lifecycle | [Key management](key-management.md) |
 | Configure Vault | [Vault integration](vault-integration.md) |
 | Monitor it / verify E2E encryption | [Observability (metrics)](observability.md) |
+| Audit the security properties | [Security considerations](security-considerations.md) |
+| Diagnose a problem | [Troubleshooting](troubleshooting.md) |
+| Use the Angular client library | [jeap-jwe-client](https://jeap-admin-ch.github.io/docs/building-blocks/libraries/jeap-jwe-client/) |
 | Run without Vault | [Testing without Vault](testing.md) |

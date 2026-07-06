@@ -9,7 +9,8 @@ data. It is designed to use established JOSE libraries and standard algorithms s
 requiring application controllers to implement encryption logic themselves.
 
 > **Angular frontends:** use the companion library
-> **[jeap-jwe-client](https://github.com/jeap-admin-ch/jeap-jwe-client)** — an npm module providing an
+> **[jeap-jwe-client](https://jeap-admin-ch.github.io/docs/building-blocks/libraries/jeap-jwe-client/)**
+> ([source](https://github.com/jeap-admin-ch/jeap-jwe-client)) — an npm module providing an
 > Angular `HttpInterceptor` that integrates with this starter and transparently encrypts requests and
 > decrypts responses. See [Client integration](docs/client-integration.md) for the protocol details.
 
@@ -40,11 +41,14 @@ module is a test-only leaf depending on `…-starter`.
 | JWKS endpoint            | [docs/jwks-endpoint.md](docs/jwks-endpoint.md)           |
 | Vault integration        | [docs/vault-integration.md](docs/vault-integration.md)   |
 | Observability (metrics)  | [docs/observability.md](docs/observability.md)           |
+| Security considerations  | [docs/security-considerations.md](docs/security-considerations.md) |
+| Troubleshooting          | [docs/troubleshooting.md](docs/troubleshooting.md)       |
 | Testing without Vault    | [docs/testing.md](docs/testing.md)                       |
 
 ## See
 
-- jeap-jwe-client (Angular HTTP interceptor): https://github.com/jeap-admin-ch/jeap-jwe-client
+- jeap-jwe-client (Angular HTTP interceptor): https://jeap-admin-ch.github.io/docs/building-blocks/libraries/jeap-jwe-client/
+  (source: https://github.com/jeap-admin-ch/jeap-jwe-client)
 - JSON Web Encryption (JWE): https://datatracker.ietf.org/doc/rfc7516/
 - JSON Web Key (JWK): https://datatracker.ietf.org/doc/rfc7517/
 
