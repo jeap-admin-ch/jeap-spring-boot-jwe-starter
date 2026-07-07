@@ -1,5 +1,6 @@
 package ch.admin.bit.jeap.jwe.starter;
 
+import ch.admin.bit.jeap.jwe.crypto.JweCryptoProvider;
 import ch.admin.bit.jeap.jwe.keymanagement.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +92,9 @@ public class JweAutoConfiguration {
     void initializeConfiguration() {
         validate();
         validateRefresh();
+        // Install the crypto provider eagerly so the native-library load, its self-test and any
+        // platform-fallback warning happen at startup instead of during the first encrypted request.
+        JweCryptoProvider.ensureInstalled();
         logConfiguration();
     }
 

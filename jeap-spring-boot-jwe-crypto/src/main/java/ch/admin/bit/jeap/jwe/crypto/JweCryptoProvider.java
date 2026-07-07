@@ -62,7 +62,9 @@ public final class JweCryptoProvider {
 
     /**
      * Ensures the crypto provider has been installed. Idempotent and cheap: referencing this method
-     * triggers the one-time static installation before the first JWE crypto operation runs.
+     * triggers the one-time static installation. The starter calls it during application startup so
+     * the native-library load and self-test do not delay the first JWE crypto operation, which also
+     * calls it defensively for non-starter usages of this module.
      */
     public static void ensureInstalled() {
         // no-op: the work happens in the static initializer the first time this class is loaded.

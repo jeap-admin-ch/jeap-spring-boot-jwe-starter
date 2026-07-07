@@ -1,10 +1,13 @@
 package ch.admin.bit.jeap.jwe.starter;
 
+import ch.admin.bit.jeap.jwe.crypto.JweCryptoProvider;
 import ch.admin.bit.jeap.jwe.test.JweTestKeys;
+import com.amazon.corretto.crypto.provider.AmazonCorrettoCryptoProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import java.security.Security;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +55,27 @@ class JweAutoConfigurationTest {
                     assertThat(props.getVault().getMinKeyVersion()).isEqualTo(1);
                     assertThat(props.getJwks().getPath()).isEqualTo("/.well-known/jwks.json");
                     assertThat(props.getRefresh().getInterval()).isEqualTo(Duration.ofMinutes(5));
+                });
+    }
+
+    @Test
+    void startupInstallsCryptoProviderEagerly() {
+        // Context startup alone — without any JWE request being processed — must trigger the one-time
+        // crypto-provider installation. Class-loading is JVM-global, so assert that the JCA
+        // registration matches the recorded install result: on platforms with a healthy native
+        // library ACCP sits at top priority, otherwise it has been removed again.
+        runner.withPropertyValues(
+                        JEAP_JWE_ENABLED_TRUE,
+                        JEAP_JWE_TEST_ENABLED_TRUE,
+                        JEAP_JWE_TEST_KEYS_0 + TEST_KEY_PEM)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    if (JweCryptoProvider.isCorrettoEnabled()) {
+                        assertThat(Security.getProviders()[0].getName())
+                                .isEqualTo(AmazonCorrettoCryptoProvider.PROVIDER_NAME);
+                    } else {
+                        assertThat(Security.getProvider(AmazonCorrettoCryptoProvider.PROVIDER_NAME)).isNull();
+                    }
                 });
     }
 
