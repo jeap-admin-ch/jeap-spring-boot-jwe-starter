@@ -4,23 +4,33 @@ import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObject;
-import com.nimbusds.jose.crypto.RSADecrypter;
 import com.nimbusds.jose.jwk.RSAKey;
 
 import java.security.PrivateKey;
 import java.text.ParseException;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Decrypts an inbound compact JWE into plaintext using the starter's supported algorithms
  * (RSA-OAEP-256 for the CEK, A256GCM for the payload).
  *
- * <p>This is a thin, stateless layer over Nimbus - no custom cryptography is implemented. The
- * request's content-encryption key is not exposed: response encryption uses a separate CEK from the
- * client's {@code JWE-Response-Key} header. All failures are surfaced as a categorised
+ * <p>This is a thin layer over Nimbus and the JCA - no cryptographic primitive is implemented. The
+ * CEK unwrap is routed through the generic JCA OAEP transformation so the Amazon Corretto Crypto
+ * Provider serves the RSA private-key operation (see {@link JweRsaOaep256Decrypter}), and the
+ * decrypter incl. the derived JCA private key is cached per key version. The request's
+ * content-encryption key is not exposed: response encryption uses a separate CEK from the client's
+ * {@code JWE-Response-Key} header. All failures are surfaced as a categorised
  * {@link JweProtocolException}.
  */
 public final class JweRequestDecryptor {
+
+    // Ready-to-use decrypter per key, so the JCA private key is derived from the JWK parameters
+    // (an expensive KeyFactory operation) only once per key version instead of on every decrypt
+    // call. Keys are value-equal across store refreshes, so the map stays as small as the number
+    // of distinct key versions seen by this JVM. Key material never leaves the JVM heap.
+    private static final ConcurrentMap<RSAKey, JweRsaOaep256Decrypter> DECRYPTERS = new ConcurrentHashMap<>();
 
     /**
      * Resolves the private {@link RSAKey} for a {@code kid}, typically the in-memory key store.
@@ -57,25 +67,30 @@ public final class JweRequestDecryptor {
         RSAKey rsaKey = resolver.resolve(keyId).orElseThrow(() -> new JweProtocolException(
                 JweProtocolException.Reason.UNKNOWN_KEY_ID, "No active key found for kid '" + keyId + "'"));
 
-        PrivateKey privateKey;
-        try {
-            privateKey = rsaKey.toPrivateKey();
-        } catch (JOSEException e) {
-            throw new JweProtocolException(JweProtocolException.Reason.DECRYPTION_FAILED,
-                    "Selected key for kid '" + keyId + "' has no usable private key", e);
-        }
-        if (privateKey == null) {
-            throw new JweProtocolException(JweProtocolException.Reason.DECRYPTION_FAILED,
-                    "Selected key for kid '" + keyId + "' has no usable private key");
-        }
-
         try {
             JweCryptoProvider.ensureInstalled();
-            jwe.decrypt(new RSADecrypter(privateKey));
+            jwe.decrypt(decrypterFor(keyId, rsaKey));
         } catch (JOSEException e) {
             throw new JweProtocolException(JweProtocolException.Reason.DECRYPTION_FAILED, "JWE decryption failed", e);
         }
 
         return new DecryptedJwe(jwe.getPayload().toBytes(), header.getContentType());
+    }
+
+    private static JweRsaOaep256Decrypter decrypterFor(String keyId, RSAKey rsaKey) {
+        return DECRYPTERS.computeIfAbsent(rsaKey, key -> {
+            PrivateKey privateKey;
+            try {
+                privateKey = key.toPrivateKey();
+            } catch (JOSEException e) {
+                throw new JweProtocolException(JweProtocolException.Reason.DECRYPTION_FAILED,
+                        "Selected key for kid '" + keyId + "' has no usable private key", e);
+            }
+            if (privateKey == null) {
+                throw new JweProtocolException(JweProtocolException.Reason.DECRYPTION_FAILED,
+                        "Selected key for kid '" + keyId + "' has no usable private key");
+            }
+            return new JweRsaOaep256Decrypter(privateKey);
+        });
     }
 }

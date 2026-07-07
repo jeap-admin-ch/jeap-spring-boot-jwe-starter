@@ -20,7 +20,10 @@ working with plain JSON and never see any cryptography.
   (ACCP) is installed at top JCA priority to accelerate the RSA-OAEP and AES-GCM operations, with an
   automatic fallback to the JDK provider when the native library is unavailable on the platform.
   The starter installs it eagerly during application startup, so the native-library load and
-  self-test never delay the first encrypted request.
+  self-test never delay the first encrypted request. The RSA-OAEP-256 key unwrap is routed through
+  the generic JCA `RSA/ECB/OAEPPadding` transformation with explicit SHA-256 parameters, because
+  ACCP does not register the SHA-256-specific transformation Nimbus would request by default —
+  without this routing the RSA private-key operation would silently run on the pure-Java JDK cipher.
   Because a JCA provider is process-global, installing ACCP changes the default provider for **all**
   cryptography in the host application, not only JWE — this matches `jeap-crypto-core` and is a no-op
   when that is already present (the install is idempotent).

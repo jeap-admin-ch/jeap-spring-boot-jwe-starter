@@ -5,6 +5,7 @@ import com.nimbusds.jose.crypto.DirectEncrypter;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.SecureRandom;
 
 /**
  * Encrypts a response payload as a compact JWE using direct encryption ({@code alg: dir},
@@ -13,7 +14,7 @@ import javax.crypto.spec.SecretKeySpec;
  * always the client's response key, never the request's CEK.
  *
  * <p>Thin, stateless layer over Nimbus - no custom cryptography. A fresh IV is generated per call by
- * Nimbus.
+ * Nimbus from a shared {@link SecureRandom}.
  */
 public final class JweResponseEncryptor {
 
@@ -21,6 +22,10 @@ public final class JweResponseEncryptor {
      * AES-256 CEK length in bytes.
      */
     private static final int CEK_LENGTH_BYTES = 32;
+
+    // Shared IV source: Nimbus allocates a fresh SecureRandom per encrypter when none is supplied;
+    // one shared, thread-safe instance avoids that per-response allocation and seeding.
+    private static final SecureRandom IV_RANDOM = new SecureRandom();
 
     private JweResponseEncryptor() {
     }
@@ -41,7 +46,9 @@ public final class JweResponseEncryptor {
         JWEObject jwe = new JWEObject(header.build(), new Payload(plaintext));
         try {
             JweCryptoProvider.ensureInstalled();
-            jwe.encrypt(new DirectEncrypter(cek));
+            DirectEncrypter encrypter = new DirectEncrypter(cek);
+            encrypter.getJCAContext().setSecureRandom(IV_RANDOM);
+            jwe.encrypt(encrypter);
         } catch (JOSEException e) {
             throw new JweEncryptionException("Could not encrypt the response", e);
         }

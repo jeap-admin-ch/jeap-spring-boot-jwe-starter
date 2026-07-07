@@ -74,8 +74,10 @@ class JweCryptoProviderTest {
             return; // platform without ACCP: nothing to assert beyond the graceful fallback
         }
         // With ACCP installed at top priority, default JCA resolution must pick it for the JWE
-        // primitives: AES-GCM (content encryption) and the generic RSA-OAEP padding Nimbus uses for
-        // the RSA-OAEP-256 key unwrap (the SHA-256 digest is supplied via the OAEPParameterSpec).
+        // primitives: AES-GCM (content encryption) and the generic RSA-OAEP padding that
+        // JweRsaOaep256Decrypter uses for the RSA-OAEP-256 key unwrap (the SHA-256 digest is
+        // supplied via the OAEPParameterSpec; the "RSA/ECB/OAEPWithSHA-256AndMGF1Padding"
+        // transformation Nimbus's own RSADecrypter would request is not registered by ACCP).
         assertThat(Cipher.getInstance("AES/GCM/NoPadding").getProvider().getName())
                 .isEqualTo(AmazonCorrettoCryptoProvider.PROVIDER_NAME);
         assertThat(Cipher.getInstance("RSA/ECB/OAEPPadding").getProvider().getName())
