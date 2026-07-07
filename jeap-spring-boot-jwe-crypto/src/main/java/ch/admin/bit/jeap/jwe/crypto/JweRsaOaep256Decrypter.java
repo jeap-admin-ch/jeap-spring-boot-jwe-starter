@@ -6,6 +6,7 @@ import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEDecrypter;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.crypto.impl.ContentCryptoProvider;
+import com.nimbusds.jose.crypto.impl.CriticalHeaderParamsDeferral;
 import com.nimbusds.jose.jca.JWEJCAContext;
 import com.nimbusds.jose.util.Base64URL;
 
@@ -41,6 +42,11 @@ final class JweRsaOaep256Decrypter implements JWEDecrypter {
     private static final OAEPParameterSpec OAEP_SHA_256_PARAMETERS = new OAEPParameterSpec(
             "SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
 
+    // RFC 7516 requires rejecting a JWE whose 'crit' header lists parameters the recipient does not
+    // process. No critical parameters are deferred to the application here, matching Nimbus's own
+    // RSADecrypter default policy. The instance is never mutated, so sharing it is thread-safe.
+    private static final CriticalHeaderParamsDeferral CRIT_POLICY = new CriticalHeaderParamsDeferral();
+
     private final PrivateKey privateKey;
     private final JWEJCAContext jcaContext = new JWEJCAContext();
 
@@ -66,11 +72,21 @@ final class JweRsaOaep256Decrypter implements JWEDecrypter {
     @Override
     public byte[] decrypt(JWEHeader header, Base64URL encryptedKey, Base64URL iv, Base64URL cipherText,
                           Base64URL authTag, byte[] aad) throws JOSEException {
-        if (!JWEAlgorithm.RSA_OAEP_256.equals(header.getAlgorithm())) {
-            throw new JOSEException("Unsupported JWE algorithm " + header.getAlgorithm());
-        }
+        // Reject incomplete JWEs up front, mirroring Nimbus's RSADecrypter: JWEObject.parse turns
+        // empty compact-serialization parts into nulls, which would otherwise NPE deep inside the
+        // content decryption instead of surfacing as a categorised protocol error.
         if (encryptedKey == null) {
             throw new JOSEException("Missing JWE encrypted key");
+        }
+        if (iv == null) {
+            throw new JOSEException("Missing JWE initialization vector (IV)");
+        }
+        if (authTag == null) {
+            throw new JOSEException("Missing JWE authentication tag");
+        }
+        CRIT_POLICY.ensureHeaderPasses(header);
+        if (!JWEAlgorithm.RSA_OAEP_256.equals(header.getAlgorithm())) {
+            throw new JOSEException("Unsupported JWE algorithm " + header.getAlgorithm());
         }
         SecretKey cek = unwrapCek(encryptedKey.decode());
         return ContentCryptoProvider.decrypt(header, aad, encryptedKey, iv, cipherText, authTag, cek, jcaContext);

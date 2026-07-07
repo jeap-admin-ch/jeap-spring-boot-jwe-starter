@@ -8,7 +8,9 @@ import com.nimbusds.jose.jwk.RSAKey;
 
 import java.security.PrivateKey;
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -28,8 +30,9 @@ public final class JweRequestDecryptor {
 
     // Ready-to-use decrypter per key, so the JCA private key is derived from the JWK parameters
     // (an expensive KeyFactory operation) only once per key version instead of on every decrypt
-    // call. Keys are value-equal across store refreshes, so the map stays as small as the number
-    // of distinct key versions seen by this JVM. Key material never leaves the JVM heap.
+    // call. Keys are value-equal across store refreshes, so an unchanged key version keeps hitting
+    // the same entry; retired versions are evicted via retainOnly on every key refresh so their
+    // private key material becomes garbage-collectible. Key material never leaves the JVM heap.
     private static final ConcurrentMap<RSAKey, JweRsaOaep256Decrypter> DECRYPTERS = new ConcurrentHashMap<>();
 
     /**
@@ -77,7 +80,17 @@ public final class JweRequestDecryptor {
         return new DecryptedJwe(jwe.getPayload().toBytes(), header.getContentType());
     }
 
-    private static JweRsaOaep256Decrypter decrypterFor(String keyId, RSAKey rsaKey) {
+    /**
+     * Drops the cached decrypters of all keys except the given active ones, so retired key versions
+     * (including their derived JCA private keys) become garbage-collectible after a key refresh. A
+     * decrypt racing with the eviction may momentarily re-add a just-retired key's decrypter; the
+     * next refresh evicts it again.
+     */
+    public static void retainOnly(Collection<RSAKey> activeKeys) {
+        DECRYPTERS.keySet().retainAll(Set.copyOf(activeKeys));
+    }
+
+    static JweRsaOaep256Decrypter decrypterFor(String keyId, RSAKey rsaKey) {
         return DECRYPTERS.computeIfAbsent(rsaKey, key -> {
             PrivateKey privateKey;
             try {

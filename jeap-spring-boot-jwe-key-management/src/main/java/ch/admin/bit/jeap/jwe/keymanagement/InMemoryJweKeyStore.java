@@ -1,5 +1,6 @@
 package ch.admin.bit.jeap.jwe.keymanagement;
 
+import ch.admin.bit.jeap.jwe.crypto.JweRequestDecryptor;
 import com.nimbusds.jose.jwk.RSAKey;
 
 import java.util.*;
@@ -19,10 +20,12 @@ public class InMemoryJweKeyStore implements JweKeyStore {
 
     /**
      * Atomically replaces the active key set. The given keys are ordered newest-version first; the
-     * previous snapshot is discarded.
+     * previous snapshot is discarded, and the decrypters of key versions no longer active are
+     * evicted so their private key material becomes garbage-collectible.
      */
     public void replaceKeys(Collection<RSAKey> keys) {
         snapshot.set(Snapshot.of(keys));
+        JweRequestDecryptor.retainOnly(keys);
     }
 
     @Override

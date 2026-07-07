@@ -23,8 +23,8 @@ public final class JweResponseEncryptor {
      */
     private static final int CEK_LENGTH_BYTES = 32;
 
-    // Shared IV source: Nimbus allocates a fresh SecureRandom per encrypter when none is supplied;
-    // one shared, thread-safe instance avoids that per-response allocation and seeding.
+    // Nimbus would otherwise allocate and seed a fresh SecureRandom per encrypter, so all response
+    // encrypters share this one thread-safe instance for IV generation.
     private static final SecureRandom IV_RANDOM = new SecureRandom();
 
     private JweResponseEncryptor() {

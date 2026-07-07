@@ -61,20 +61,23 @@ class JweAutoConfigurationTest {
     @Test
     void startupInstallsCryptoProviderEagerly() {
         // Context startup alone — without any JWE request being processed — must trigger the one-time
-        // crypto-provider installation. Class-loading is JVM-global, so assert that the JCA
-        // registration matches the recorded install result: on platforms with a healthy native
-        // library ACCP sits at top priority, otherwise it has been removed again.
+        // crypto-provider installation. Observe the JCA registration BEFORE touching
+        // JweCryptoProvider: reading the Security provider list does not class-load the installer,
+        // so a missing eager install would leave ACCP unregistered here even though the
+        // isCorrettoEnabled() call below would then install it as a side effect.
         runner.withPropertyValues(
                         JEAP_JWE_ENABLED_TRUE,
                         JEAP_JWE_TEST_ENABLED_TRUE,
                         JEAP_JWE_TEST_KEYS_0 + TEST_KEY_PEM)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
+                    boolean accpRegistered = Security.getProvider(AmazonCorrettoCryptoProvider.PROVIDER_NAME) != null;
                     if (JweCryptoProvider.isCorrettoEnabled()) {
+                        assertThat(accpRegistered).isTrue();
                         assertThat(Security.getProviders()[0].getName())
                                 .isEqualTo(AmazonCorrettoCryptoProvider.PROVIDER_NAME);
                     } else {
-                        assertThat(Security.getProvider(AmazonCorrettoCryptoProvider.PROVIDER_NAME)).isNull();
+                        assertThat(accpRegistered).isFalse();
                     }
                 });
     }

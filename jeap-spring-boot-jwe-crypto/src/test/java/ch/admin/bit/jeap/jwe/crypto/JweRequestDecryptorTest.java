@@ -9,7 +9,9 @@ import org.junit.jupiter.api.Test;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.*;
@@ -27,12 +29,16 @@ class JweRequestDecryptorTest {
 
     @BeforeAll
     static void generateKey() throws Exception {
+        key = newKey(KID);
+    }
+
+    private static RSAKey newKey(String kid) throws Exception {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
         KeyPair pair = generator.generateKeyPair();
-        key = new RSAKey.Builder((RSAPublicKey) pair.getPublic())
+        return new RSAKey.Builder((RSAPublicKey) pair.getPublic())
                 .privateKey(pair.getPrivate())
-                .keyID(KID)
+                .keyID(kid)
                 .build();
     }
 
@@ -112,5 +118,70 @@ class JweRequestDecryptorTest {
         JweProtocolException ex = catchThrowableOfType(JweProtocolException.class,
                 () -> JweRequestDecryptor.decrypt(compact, resolver()));
         assertThat(ex.getReason()).isEqualTo(JweProtocolException.Reason.UNKNOWN_KEY_ID);
+    }
+
+    @Test
+    void unknownCriticalHeaderParameterIsRejected() throws Exception {
+        // RFC 7516 requires rejecting a JWE whose 'crit' header lists parameters this recipient
+        // does not process, instead of silently ignoring them.
+        JWEObject jwe = new JWEObject(
+                new JWEHeader.Builder(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A256GCM)
+                        .keyID(KID)
+                        .customParam("foo", "bar")
+                        .criticalParams(Set.of("foo"))
+                        .build(),
+                new Payload(PLAINTEXT));
+        jwe.encrypt(new RSAEncrypter(key.toRSAPublicKey()));
+
+        JweProtocolException ex = catchThrowableOfType(JweProtocolException.class,
+                () -> JweRequestDecryptor.decrypt(jwe.serialize(), resolver()));
+        assertThat(ex.getReason()).isEqualTo(JweProtocolException.Reason.DECRYPTION_FAILED);
+    }
+
+    @Test
+    void emptyIvOrAuthTagIsRejected() throws Exception {
+        // JWEObject.parse turns an empty IV or auth-tag segment into null; such incomplete JWEs
+        // must surface as a categorised protocol error, not an unhandled NPE.
+        String compact = encrypt(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A256GCM, KID, "application/json");
+        String[] parts = compact.split("\\.");
+        String emptyIv = String.join(".", parts[0], parts[1], "", parts[3], parts[4]);
+        String emptyAuthTag = String.join(".", parts[0], parts[1], parts[2], parts[3], "");
+
+        for (String crafted : List.of(emptyIv, emptyAuthTag)) {
+            JweProtocolException ex = catchThrowableOfType(JweProtocolException.class,
+                    () -> JweRequestDecryptor.decrypt(crafted, resolver()));
+            assertThat(ex.getReason()).isEqualTo(JweProtocolException.Reason.DECRYPTION_FAILED);
+        }
+    }
+
+    @Test
+    void decrypterIsCachedPerKeyAndEvictedByRetainOnly() throws Exception {
+        RSAKey valueEqualCopy = new RSAKey.Builder(key).build();
+        RSAKey rotatedKey = newKey("test-key:2");
+
+        JweRsaOaep256Decrypter cached = JweRequestDecryptor.decrypterFor(KID, key);
+
+        // Value-equal keys (as produced by store refreshes) reuse the cached decrypter; a rotated
+        // key version gets its own.
+        assertThat(JweRequestDecryptor.decrypterFor(KID, valueEqualCopy)).isSameAs(cached);
+        assertThat(JweRequestDecryptor.decrypterFor("test-key:2", rotatedKey)).isNotSameAs(cached);
+
+        // Retaining only the rotated key evicts the retired version's decrypter, so a later lookup
+        // derives a fresh one.
+        JweRequestDecryptor.retainOnly(List.of(rotatedKey));
+        assertThat(JweRequestDecryptor.decrypterFor(KID, key)).isNotSameAs(cached);
+    }
+
+    @Test
+    void keyWithoutPrivatePartIsRejectedAndNotCached() {
+        RSAKey publicOnly = key.toPublicJWK();
+
+        // The failed derivation must not poison the cache: every attempt fails the same way instead
+        // of returning a broken cached decrypter.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            JweProtocolException ex = catchThrowableOfType(JweProtocolException.class,
+                    () -> JweRequestDecryptor.decrypterFor(KID, publicOnly));
+            assertThat(ex.getReason()).isEqualTo(JweProtocolException.Reason.DECRYPTION_FAILED);
+        }
     }
 }

@@ -32,7 +32,8 @@ In Vault mode, `JweKeyRefreshScheduler` triggers a refresh at a configurable int
 4. Atomically swaps the key store snapshot.
 
 New keys from Vault rotations become available within one refresh interval. Old keys removed
-via `min-key-version` eviction are dropped from the snapshot.
+via `min-key-version` eviction are dropped from the snapshot and from the per-key decrypter
+cache, so their private key material becomes garbage-collectible.
 
 ## Outage Resilience
 
