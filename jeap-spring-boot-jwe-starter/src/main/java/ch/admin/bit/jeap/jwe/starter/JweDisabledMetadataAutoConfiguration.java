@@ -34,9 +34,15 @@ import org.springframework.context.annotation.Bean;
  * <p>{@link JweProperties} is enabled here as well: {@link JweAutoConfiguration}, which normally does
  * it, is gated on the very switch that has to be {@code false} for this configuration to apply, so the
  * properties bean would not exist otherwise.
+ *
+ * <p>Ordered <em>after</em> {@link JweWebAutoConfiguration} so the {@code @ConditionalOnMissingBean}
+ * on the controller can see that configuration's bean definition and really back off. The two are
+ * mutually exclusive through their {@code jeap.jwe.enabled} conditions today; the guard keeps a
+ * duplicate {@code @RestController} on the same path from becoming an ambiguous-mapping startup
+ * failure should that ever drift.
  */
 @Slf4j
-@AutoConfiguration(before = JweWebAutoConfiguration.class)
+@AutoConfiguration(after = JweWebAutoConfiguration.class)
 @EnableConfigurationProperties(JweProperties.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(prefix = "jeap.jwe", name = "enabled", havingValue = "false")

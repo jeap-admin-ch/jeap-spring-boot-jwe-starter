@@ -261,8 +261,9 @@ flowchart LR
 Authenticating first limits unauthenticated decrypt amplification (each encrypted request costs
 one RSA-4096 private-key operation). Two integration points: the **JWKS and metadata paths must be
 reachable unauthenticated** (clients fetch keys before authenticating) — the starter contributes a
-high-precedence `SecurityFilterChain` that permits exactly those two paths automatically when Spring
-Security is present (opt out via `jeap.jwe.security.permit-well-known-endpoints=false`) — and a
+high-precedence `SecurityFilterChain` that permits exactly those paths automatically when Spring
+Security is present (the metadata path alone while `jeap.jwe.enabled=false`; opt out via
+`jeap.jwe.security.permit-well-known-endpoints=false`) — and a
 **bearer-token JWE API should disable CSRF** like any stateless REST API. This is exercised end to
 end by the `jeap-spring-boot-jwe-security-it` module. See
 [Using with jeap-security](servlet-filter.md#using-with-jeap-security).

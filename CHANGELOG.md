@@ -16,6 +16,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   only while `jeap.jwe.enabled=true`), so a disabled service does not answer discovery with `401`.
   While disabled it permits only the metadata path — there is no JWKS endpoint.
 
+### Upgrade notes
+
+- **Services running with `jeap.jwe.enabled=false` change behaviour on this upgrade.** They now serve
+  a public, read-only endpoint at `jeap.jwe.metadata.path` (payload: `{"enabled": false}`, no key
+  material) and, with Spring Security on the classpath, contribute the well-known `SecurityFilterChain`
+  at order `-100`. As documented for that chain, contributing one makes Spring Boot's auto-generated
+  default security chain back off in applications that rely on it. Set
+  `jeap.jwe.metadata.publish-when-disabled=false` to keep the previous behaviour — no endpoint, no chain.
+- `JweConfigurationMetadata` is a public record and its canonical constructor gained a leading
+  `boolean enabled`, so code constructing or deconstructing it does not compile against this version
+  unchanged. On the wire the field is purely additive; a client deserializing the document into its own
+  DTO with `FAIL_ON_UNKNOWN_PROPERTIES` enabled has to accept it.
+
 ## [1.18.0] - 2026-08-18
 
 ### Changed

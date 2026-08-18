@@ -68,9 +68,10 @@ Both discovery documents are served **unencrypted** (they are on the filter's ex
 
    A client must **not** read a failed metadata load (404, connection error) as "encryption is off" —
    that would silently downgrade to plaintext on a typo or an outage. Only an explicit
-   `"enabled": false` means off. Servers before 1.19.0 answer `404` while disabled, so a client
-   talking to one needs its switch configured locally. Publishing the disabled state can be turned off
-   with `jeap.jwe.metadata.publish-when-disabled=false`.
+   `"enabled": false` means off. Servers from before the release that introduced this field (see the
+   [changelog](../CHANGELOG.md)) answer `404` while disabled, so a client talking to one needs its
+   switch configured locally. Publishing the disabled state can be turned off with
+   `jeap.jwe.metadata.publish-when-disabled=false`.
 
    `includedPaths`/`excludedPaths` are the server's **effective** path patterns (`PathPattern`
    syntax), excludes already including the jEAP defaults. A client can mirror the server's decision —

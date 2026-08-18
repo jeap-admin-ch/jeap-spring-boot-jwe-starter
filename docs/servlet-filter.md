@@ -115,8 +115,10 @@ JWE filter at order `0`. Concretely:
 **Public discovery endpoints.** Clients must fetch the public key **before** they authenticate, so
 the JWKS and protocol-metadata endpoints have to be reachable without a token. When Spring Security
 is on the classpath, the starter contributes a high-precedence `SecurityFilterChain`
-(`JweSecurityAutoConfiguration`) whose `securityMatcher` is scoped to exactly those two configured
-paths and that permits all requests; every other path falls through to your application's own chain,
+(`JweSecurityAutoConfiguration`) whose `securityMatcher` is scoped to exactly those configured paths
+— both of them while JWE is on, the metadata path alone while `jeap.jwe.enabled=false`, where no
+JWKS endpoint exists — and that permits all requests; every other path falls through to your
+application's own chain,
 so nothing else is opened. This composes with jeap-security (its chains run at `LOWEST_PRECEDENCE`
 and are not `@ConditionalOnMissingBean`, so they keep protecting everything else). No manual
 `permitAll` rule is needed. To manage these paths yourself, opt out with
@@ -188,6 +190,7 @@ encryption, so a frontend has a single discovery point alongside the JWKS:
 
 ```json
 {
+  "enabled": true,
   "contentTypeAllowlist": [
     "application/json"
   ],
