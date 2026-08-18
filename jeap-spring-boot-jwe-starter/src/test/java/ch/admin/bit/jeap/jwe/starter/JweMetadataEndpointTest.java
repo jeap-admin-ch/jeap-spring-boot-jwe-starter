@@ -48,6 +48,7 @@ class JweMetadataEndpointTest {
         String body = response.getBody();
         // Effective include is the default API pattern; excludes carry the jEAP defaults plus the custom one.
         assertThat(body).isNotNull()
+                .contains("\"enabled\":true")
                 .contains("\"contentTypeAllowlist\":[\"application/json\",\"application/cbor\"]")
                 .contains("\"keyEncryptionAlgorithm\":\"RSA-OAEP-256\"")
                 .contains("\"contentEncryptionMethod\":\"A256GCM\"")

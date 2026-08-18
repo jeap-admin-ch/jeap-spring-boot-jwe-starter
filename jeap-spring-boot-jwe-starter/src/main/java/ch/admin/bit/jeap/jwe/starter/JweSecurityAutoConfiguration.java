@@ -1,5 +1,6 @@
 package ch.admin.bit.jeap.jwe.starter;
 
+import ch.admin.bit.jeap.jwe.web.JweMetadataController;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.*;
@@ -15,12 +16,12 @@ import org.springframework.security.web.SecurityFilterChain;
  * Makes the public JWE discovery endpoints reachable without authentication when the consuming
  * application secures its requests with Spring Security: the JWKS endpoint ({@code jeap.jwe.jwks.path})
  * and the protocol-metadata endpoint ({@code jeap.jwe.metadata.path}). Clients must fetch the public
- * key <em>before</em> they authenticate, so these two paths have to be permitted; otherwise a secured
+ * key <em>before</em> they authenticate, so these paths have to be permitted; otherwise a secured
  * application would answer the unauthenticated discovery requests with {@code 401} and no client could
  * bootstrap.
  *
  * <p>It contributes a high-precedence {@link SecurityFilterChain} whose {@code securityMatcher} is
- * scoped to exactly these two paths and that permits all requests. Because the matcher is narrow, every
+ * scoped to exactly these paths and that permits all requests. Because the matcher is narrow, every
  * other path falls through to the application's own (lower-precedence) chain. This composes with
  * {@code jeap-spring-boot-security-starter}, whose chains are registered at
  * {@link Ordered#LOWEST_PRECEDENCE} and are not {@code @ConditionalOnMissingBean}, so jeap-security keeps
@@ -39,18 +40,24 @@ import org.springframework.security.web.SecurityFilterChain;
  * (no {@code HttpSecurity} bean) - it never fails a context that merely has the Spring Security jars
  * present. It is ordered after Spring Boot's servlet web-security auto-configuration so the
  * {@code HttpSecurity} bean (registered via {@code @EnableWebSecurity}) is visible to the condition.
+ *
+ * <p>It is additionally gated on an actual {@link JweMetadataController} bean rather than on
+ * {@code jeap.jwe.enabled}: with the switch off the starter still publishes the disabled state at the
+ * metadata endpoint (see {@link JweDisabledMetadataAutoConfiguration}), which a secured application
+ * would otherwise answer with {@code 401}. Gating on the controller also means that suppressing the
+ * endpoint via {@code jeap.jwe.metadata.publish-when-disabled=false} contributes no chain at all, so a
+ * fully disabled starter stays as invisible to the application's security setup as it was before.
  */
 @Slf4j
 @AutoConfiguration(
-        after = JweWebAutoConfiguration.class,
+        after = {JweWebAutoConfiguration.class, JweDisabledMetadataAutoConfiguration.class},
         afterName = {
                 "org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration",
                 "org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration"
         })
 @ConditionalOnClass({SecurityFilterChain.class, HttpSecurity.class})
-@ConditionalOnBean(HttpSecurity.class)
+@ConditionalOnBean({HttpSecurity.class, JweMetadataController.class})
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnProperty(prefix = "jeap.jwe", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnProperty(prefix = "jeap.jwe.security", name = "permit-well-known-endpoints",
         havingValue = "true", matchIfMissing = true)
 public class JweSecurityAutoConfiguration {
@@ -67,7 +74,9 @@ public class JweSecurityAutoConfiguration {
     static final int WELL_KNOWN_SECURITY_ORDER = -100;
 
     /**
-     * Permits unauthenticated access to the JWKS and protocol-metadata paths. The paths are matched
+     * Permits unauthenticated access to the protocol-metadata path and, while JWE is switched on, to the
+     * JWKS path. With the switch off there is no JWKS endpoint in the context, so that path is left out
+     * of the matcher rather than permitted into a {@code 404}. The paths are matched
      * application-relative (Spring Security strips {@code server.servlet.context-path}), matching how the
      * controllers map them and how {@link org.springframework.security.web.util.matcher.RequestMatcher}
      * evaluates request paths, so the configured values are used verbatim without context-path prefixing.
@@ -86,18 +95,19 @@ public class JweSecurityAutoConfiguration {
     // CSRF is disabled here because this chain only covers the public, read-only (GET) well-known
     // endpoints (JWKS / protocol metadata); CSRF protects state-changing requests, of which there are none.
     SecurityFilterChain jweWellKnownSecurityFilterChain(HttpSecurity http, JweProperties properties) throws Exception {
-        String jwksPath = properties.getJwks().getPath();
-        String metadataPath = properties.getMetadata().getPath();
+        String[] wellKnownPaths = properties.isEnabled()
+                ? new String[]{properties.getJwks().getPath(), properties.getMetadata().getPath()}
+                : new String[]{properties.getMetadata().getPath()};
         http
-                .securityMatcher(jwksPath, metadataPath)
+                .securityMatcher(wellKnownPaths)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.GET, jwksPath, metadataPath).permitAll()
-                        .requestMatchers(HttpMethod.HEAD, jwksPath, metadataPath).permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, jwksPath, metadataPath).permitAll()
+                        .requestMatchers(HttpMethod.GET, wellKnownPaths).permitAll()
+                        .requestMatchers(HttpMethod.HEAD, wellKnownPaths).permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, wellKnownPaths).permitAll()
                         .anyRequest().denyAll())
                 .csrf(AbstractHttpConfigurer::disable);
-        log.info("Permitting unauthenticated access to the JWE discovery endpoints {} and {}.",
-                jwksPath, metadataPath);
+        log.info("Permitting unauthenticated access to the JWE discovery endpoint(s) {}.",
+                String.join(", ", wellKnownPaths));
         return http.build();
     }
 }

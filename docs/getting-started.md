@@ -11,7 +11,9 @@
 ```
 
 The starter is **active by default** when on the classpath. Set `jeap.jwe.enabled=false` to
-disable it explicitly.
+disable it explicitly — a disabled service keeps answering the protocol-metadata endpoint with
+`"enabled": false`, so a frontend can follow the switch instead of being rebuilt per stage (see
+[Configuration](configuration.md#following-the-switch-from-a-client)).
 
 ## Vault mode (production)
 

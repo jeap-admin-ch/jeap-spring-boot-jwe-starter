@@ -92,7 +92,8 @@ recommendations — is consolidated in [Security considerations](security-consid
 ## Registration
 
 The filter is registered via a `FilterRegistrationBean` if the starter is not explicitly disabled (
-`jeap.jwe.enabled=false`).
+`jeap.jwe.enabled=false`). A disabled starter contributes no filter at all; only the
+protocol-metadata endpoint remains, publishing `"enabled": false` for clients.
 
 Its position in the chain is configurable through `jeap.jwe.filter.order` (default `0`), which
 places it after the Spring Security filter chain (registered at order `-100`) and early enough to

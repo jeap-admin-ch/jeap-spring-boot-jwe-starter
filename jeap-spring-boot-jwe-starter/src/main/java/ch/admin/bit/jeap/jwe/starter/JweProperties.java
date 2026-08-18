@@ -18,7 +18,7 @@ import java.util.List;
  *
  * <p>All security-relevant parameters are configurable here. Enabling the starter
  * is strictly opt-in via {@link #enabled}; when disabled the dependency has no effect on the
- * application.
+ * application beyond the protocol-metadata endpoint, which keeps publishing the disabled state.
  */
 @Getter
 @Setter
@@ -27,8 +27,10 @@ import java.util.List;
 public class JweProperties {
 
     /**
-     * Master switch for the JWE starter. When {@code false} no JWE beans are
-     * created and existing endpoints behave exactly as before. Enabled by default when the
+     * Master switch for the JWE starter. When {@code false} no encryption beans are created and
+     * existing endpoints behave exactly as before; only the protocol-metadata endpoint keeps
+     * answering, publishing {@code "enabled": false} so clients can follow the switch (turn that off
+     * with {@code jeap.jwe.metadata.publish-when-disabled=false}). Enabled by default when the
      * starter is on the classpath.
      */
     private boolean enabled = true;
@@ -231,10 +233,18 @@ public class JweProperties {
     @ToString
     public static class Metadata {
         /**
-         * Path under which the client-facing JWE configuration (content-type allowlist, supported
-         * algorithms, JWKS path, response-key header) is served. Always excluded from encryption.
+         * Path under which the client-facing JWE configuration (master switch, content-type allowlist,
+         * supported algorithms, JWKS path, response-key header) is served. Always excluded from encryption.
          */
         private String path = JweMetadataController.DEFAULT_METADATA_PATH;
+
+        /**
+         * Whether the endpoint keeps answering when {@code jeap.jwe.enabled=false}, publishing
+         * {@code "enabled": false}. This is what lets a client follow the server's master switch, so a
+         * frontend built with encryption turned on stays usable against a stage that has it turned off.
+         * Set to {@code false} to have a disabled starter contribute no endpoint at all.
+         */
+        private boolean publishWhenDisabled = true;
     }
 
     /**

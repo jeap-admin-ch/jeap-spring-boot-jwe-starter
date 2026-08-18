@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-08-18
+
+### Changed
+
+- Publish the master switch `jeap.jwe.enabled` as `enabled` in the protocol metadata, and keep the
+  metadata endpoint answering while JWE is disabled, so clients can follow the switch instead of
+  carrying their own build-time copy of it. Turn off with `jeap.jwe.metadata.publish-when-disabled=false`.
+- The well-known security chain is now contributed whenever the metadata endpoint exists (previously
+  only while `jeap.jwe.enabled=true`), so a disabled service does not answer discovery with `401`.
+  While disabled it permits only the metadata path — there is no JWKS endpoint.
+
 ## [1.18.0] - 2026-08-18
 
 ### Changed

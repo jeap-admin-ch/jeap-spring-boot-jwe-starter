@@ -120,6 +120,25 @@ traffic patterns remain visible to those intermediaries.
 - Structured error logs record the code, status, method and path — never plaintext payloads or
   key material.
 
+## Publishing the master switch to clients
+
+The protocol metadata publishes `enabled`, and the endpoint keeps answering while
+`jeap.jwe.enabled=false` so a client can follow the switch rather than carry a build-time copy of it.
+Two points on the trust model:
+
+- **No new downgrade vector.** The metadata is already the client's source of truth for *which* paths
+  are encrypted. Anyone able to forge or tamper with that response can publish empty `includedPaths`
+  and switch off encryption for every path — `enabled` adds no capability that was not already there.
+  Both rest on the same assumption: the metadata is fetched over TLS from the real origin.
+- **The client must not infer "off" from a failure.** Only an explicit `"enabled": false` may disable
+  a client; a 404 or a connection error must keep it failing closed, or a typo in the configured path
+  would silently downgrade every request to plaintext. `jeap-jwe-client` behaves this way, and a
+  client that wants encryption enforced regardless can pin its own `enabled` locally — an explicit
+  local value wins over the published one.
+
+Set `jeap.jwe.metadata.publish-when-disabled=false` if a disabled service should expose no endpoint
+at all.
+
 ## Verifying encryption is active
 
 The `jeap.jwe.encryption.active` gauge is `1` only when JWE is enabled, **both** enforcement

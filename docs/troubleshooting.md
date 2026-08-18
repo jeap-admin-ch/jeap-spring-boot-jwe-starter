@@ -57,6 +57,8 @@ exclude (see [Servlet filter → Path matching](servlet-filter.md#path-matching-
 - **The starter is disabled.** Check `jeap.jwe.enabled` and — the definitive signal — the
   `jeap.jwe.encryption.active` gauge (`1` only when both enforcement directions are on and keys
   are loaded; see [Observability](observability.md#verifying-end-to-end-encryption-governance)).
+  The protocol-metadata endpoint reports the same thing to clients: `GET`ting it on a disabled
+  service returns `{"enabled": false}` rather than a `404`.
 
 ## Key-rotation issues
 

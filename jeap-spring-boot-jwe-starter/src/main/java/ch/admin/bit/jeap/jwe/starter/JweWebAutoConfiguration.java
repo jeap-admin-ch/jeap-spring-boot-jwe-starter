@@ -56,6 +56,7 @@ public class JweWebAutoConfiguration {
         // against the origin. With no context path the prefix is empty and the values are unchanged.
         String contextPath = normalizeContextPath(environment.getProperty("server.servlet.context-path", ""));
         JweConfigurationMetadata metadata = new JweConfigurationMetadata(
+                true,
                 List.copyOf(filter.getContentTypeAllowlist()),
                 JweRsaKeys.KEY_ENCRYPTION_ALGORITHM.getName(),
                 EncryptionMethod.A256GCM.getName(),

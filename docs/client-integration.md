@@ -36,6 +36,7 @@ Both discovery documents are served **unencrypted** (they are on the filter's ex
 
    ```json
    {
+     "enabled": true,
      "contentTypeAllowlist": ["application/json"],
      "keyEncryptionAlgorithm": "RSA-OAEP-256",
      "contentEncryptionMethod": "A256GCM",
@@ -45,6 +46,31 @@ Both discovery documents are served **unencrypted** (they are on the filter's ex
      "excludedPaths": ["/actuator/**", "/.well-known/jwks.json", "/.well-known/jwe-configuration", "/ui-api/sse/events/**"]
    }
    ```
+
+   `enabled` mirrors the server's master switch `jeap.jwe.enabled`. A client should follow it instead
+   of carrying its own build-time copy: that is what lets one frontend artifact run against a stage
+   with encryption on and one with it off. **The endpoint answers in both states** — with the switch
+   off it returns `200` with `{"enabled": false}` and empty path lists, and nothing else of the
+   starter is contributed (no JWKS endpoint, no filter):
+
+   ```json
+   {
+     "enabled": false,
+     "contentTypeAllowlist": [],
+     "keyEncryptionAlgorithm": null,
+     "contentEncryptionMethod": null,
+     "jwksPath": null,
+     "responseKeyHeader": null,
+     "includedPaths": [],
+     "excludedPaths": []
+   }
+   ```
+
+   A client must **not** read a failed metadata load (404, connection error) as "encryption is off" —
+   that would silently downgrade to plaintext on a typo or an outage. Only an explicit
+   `"enabled": false` means off. Servers before 1.19.0 answer `404` while disabled, so a client
+   talking to one needs its switch configured locally. Publishing the disabled state can be turned off
+   with `jeap.jwe.metadata.publish-when-disabled=false`.
 
    `includedPaths`/`excludedPaths` are the server's **effective** path patterns (`PathPattern`
    syntax), excludes already including the jEAP defaults. A client can mirror the server's decision —

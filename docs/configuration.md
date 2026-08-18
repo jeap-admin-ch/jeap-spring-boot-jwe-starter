@@ -6,7 +6,7 @@ All properties live under the `jeap.jwe` prefix.
 
 | Property           | Type      | Default | Description                                             |
 |--------------------|-----------|---------|---------------------------------------------------------|
-| `jeap.jwe.enabled` | `boolean` | `true`  | Master switch. Set to `false` to disable all JWE beans. |
+| `jeap.jwe.enabled` | `boolean` | `true`  | Master switch. Set to `false` to disable all JWE beans; only the protocol-metadata endpoint keeps answering, publishing `"enabled": false`. |
 
 ## JWKS Endpoint
 
@@ -70,13 +70,32 @@ metadata endpoint, however, publishes these paths **prefixed with the context pa
 
 | Property                 | Type     | Default                          | Description                                                                                                                                                                                                              |
 |--------------------------|----------|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `jeap.jwe.metadata.path` | `String` | `/.well-known/jwe-configuration` | Path of the client-facing JWE configuration endpoint (content-type allowlist, supported algorithms, JWKS path, response-key header, and the effective `includedPaths`/`excludedPaths`). Always excluded from encryption. |
+| `jeap.jwe.metadata.path` | `String` | `/.well-known/jwe-configuration` | Path of the client-facing JWE configuration endpoint (master switch, content-type allowlist, supported algorithms, JWKS path, response-key header, and the effective `includedPaths`/`excludedPaths`). Always excluded from encryption. |
+| `jeap.jwe.metadata.publish-when-disabled` | `boolean` | `true` | Keep answering the endpoint when `jeap.jwe.enabled=false`, publishing `"enabled": false` so clients can follow the switch. Set to `false` to contribute no endpoint at all while disabled. |
+
+### Following the switch from a client
+
+`jeap.jwe.enabled=false` turns off every encryption bean, but the metadata endpoint keeps answering
+with `"enabled": false`. That is what makes **deployment parity** workable: the same frontend artifact
+runs against a stage with encryption on and a stage with it off, without a build-time flag of its own.
+[`jeap-jwe-client`](https://github.com/jeap-admin-ch/jeap-jwe-client) reads the field and disables
+itself accordingly (an explicit local `enabled` still wins).
+
+Two consequences of leaving this on the default:
+
+- A disabled service exposes one public, read-only endpoint that it did not expose before. It carries
+  no key material and no security-sensitive data.
+- With Spring Security on the classpath, the starter contributes its narrow permitting
+  `SecurityFilterChain` while disabled too (see `jeap.jwe.security.permit-well-known-endpoints`) —
+  otherwise the discovery request would be answered with `401`.
+
+Set `publish-when-disabled=false` to get the previous behaviour back: no endpoint, no security chain.
 
 ## Security
 
 | Property                                        | Type      | Default | Description                                                                                                                                                                                                                                                                                           |
 |-------------------------------------------------|-----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `jeap.jwe.security.permit-well-known-endpoints` | `boolean` | `true`  | When Spring Security is on the classpath, contribute a `SecurityFilterChain` that permits unauthenticated access to the JWKS and protocol-metadata paths so clients can fetch the public key before authenticating. Set to `false` to manage these paths yourself. No effect without Spring Security. |
+| `jeap.jwe.security.permit-well-known-endpoints` | `boolean` | `true`  | When Spring Security is on the classpath, contribute a `SecurityFilterChain` that permits unauthenticated access to the JWKS and protocol-metadata paths so clients can fetch the public key before authenticating. While `jeap.jwe.enabled=false` only the metadata path is permitted (there is no JWKS endpoint). Set to `false` to manage these paths yourself. No effect without Spring Security. |
 
 ## Static Test Mode
 
