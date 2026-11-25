@@ -128,7 +128,7 @@ Apache License Version 2.0
  * Spring Vault Core - [org.springframework.vault:spring-vault-core](https://projects.spring.io/spring-vault/spring-vault-core/)
  * WireMock - [org.wiremock:wiremock-standalone](http://wiremock.org)
  * org.xmlunit:xmlunit-core - [org.xmlunit:xmlunit-core](https://www.xmlunit.org/)
- * SnakeYAML - [org.yaml:snakeyaml](https://bitbucket.org/snakeyaml/snakeyaml)
+ * SnakeYAML - [org.yaml:snakeyaml](https://codeberg.org/snakeyaml/snakeyaml)
  * Amazon Corretto Crypto Provider - [software.amazon.cryptools:AmazonCorrettoCryptoProvider](https://github.com/corretto/amazon-corretto-crypto-provider)
  * Jackson-core - [tools.jackson.core:jackson-core](https://github.com/FasterXML/jackson-core)
  * jackson-databind - [tools.jackson.core:jackson-databind](https://github.com/FasterXML/jackson)
