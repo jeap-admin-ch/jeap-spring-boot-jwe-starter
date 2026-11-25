@@ -58,7 +58,7 @@ Dependency direction is acyclic: `crypto` ← `key-management` ← `web` ← `st
 - `…-jwe-security-it` — integration tests proving the JWE filter coexists with
   `jeap-spring-boot-security-starter` (auth at order `-100`, JWE at order `0`). Isolates the
   jeap-security dependency to a test scope so it never reaches the published starter. Has only
-  test sources, so it attaches an empty javadoc jar (Maven Central requires one).
+  test sources, so it attaches an empty javadoc jar.
 
 > **Servlet-only support.** This starter targets the Spring MVC / Jakarta Servlet stack
 > only. Reactive (Spring WebFlux) is **not** supported. Web beans are gated on a servlet
